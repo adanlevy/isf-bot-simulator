@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ISF Bot Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #171b25;
+    --surface2: #1e2330;
+    --border: #2a3040;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --wa-in: #1e2d20;
+    --wa-out: #1a2a40;
+    --wa-header: #111b16;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-dot { width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .header h1 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text); }
+  .header span { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  /* Main layout */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* === SALESFORCE PANEL === */
+  .sf-panel {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sf-title {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sf-title::before { content: ''; display: block; width: 6px; height: 6px; background: var(--accent); border-radius: 1px; }
+
+  .sf-fields { padding: 12px; overflow-y: auto; flex: 1; }
+  .sf-field {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: border-color .3s, background .3s;
+  }
+  .sf-field.updated {
+    border-color: var(--accent);
+    background: rgba(59,130,246,.08);
+    animation: fieldFlash .6s ease;
+  }
+  @keyframes fieldFlash { 0%{background:rgba(59,130,246,.25)} 100%{background:rgba(59,130,246,.08)} }
+  .sf-field-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .sf-field-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .sf-field-value.null { color: var(--muted); font-style: italic; }
+
+  .status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+  .status-null { background: rgba(100,116,139,.15); color: var(--muted); }
+  .status-primer_envio { background: rgba(245,158,11,.15); color: var(--warn); }
+  .status-en_conversacion { background: rgba(59,130,246,.15); color: var(--accent); }
+  .status-cerrado_positivo { background: rgba(16,185,129,.15); color: var(--accent2); }
+  .status-cerrado_negativo { background: rgba(239,68,68,.15); color: var(--danger); }
+
+  .sf-log-title {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sf-log-title::before { content: ''; display: block; width: 6px; height: 6px; background: var(--warn); border-radius: 1px; }
+  .sf-log { padding: 8px 12px; max-height: 160px; overflow-y: auto; }
+  .sf-log-entry {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    line-height: 1.5;
+  }
+  .sf-log-entry .ts { color: rgba(100,116,139,.6); margin-right: 6px; }
+  .sf-log-entry .action { color: var(--accent2); }
+
+  /* === WHATSAPP PANEL === */
+  .wa-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .wa-header {
+    background: var(--wa-header);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wa-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white;
+  }
+  .wa-contact-name { font-size: 14px; font-weight: 600; }
+  .wa-contact-sub { font-size: 11px; color: #25d366; }
+  .wa-badge {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .wa-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 20% 80%, rgba(16,185,129,.03) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, rgba(59,130,246,.03) 0%, transparent 50%);
+  }
+
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    animation: msgIn .25s ease;
+  }
+  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .msg-row.bot { justify-content: flex-start; }
+  .msg-row.user { justify-content: flex-end; }
+
+  .msg-bubble {
+    max-width: 72%;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    position: relative;
+  }
+  .msg-row.bot .msg-bubble {
+    background: var(--wa-in);
+    border-bottom-left-radius: 3px;
+    color: var(--text);
+  }
+  .msg-row.user .msg-bubble {
+    background: var(--wa-out);
+    border-bottom-right-radius: 3px;
+    color: var(--text);
+  }
+  .msg-time {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--wa-in);
+    border-radius: 12px;
+    border-bottom-left-radius: 3px;
+    width: fit-content;
+  }
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: typingDot 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .2s; }
+  .typing-dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes typingDot { 0%,80%,100%{transform:scale(1);opacity:.4} 40%{transform:scale(1.2);opacity:1} }
+
+  /* Input area */
+  .wa-input-area {
+    padding: 10px 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .wa-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    resize: none;
+    outline: none;
+    max-height: 100px;
+    line-height: 1.4;
+    transition: border-color .2s;
+  }
+  .wa-input:focus { border-color: var(--accent); }
+  .wa-input::placeholder { color: var(--muted); }
+
+  .wa-send {
+    width: 40px; height: 40px;
+    background: #25d366;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, transform .1s;
+    flex-shrink: 0;
+  }
+  .wa-send:hover { background: #20c05a; }
+  .wa-send:active { transform: scale(.95); }
+  .wa-send svg { width: 18px; height: 18px; fill: white; }
+  .wa-send:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* Reset button */
+  .reset-btn {
+    margin-left: 8px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all .2s;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .reset-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-dot"></div>
+  <h1>ISF Bot Simulator</h1>
+  <span>Make.com + Salesforce + WhatsApp + IA</span>
+  <button class="reset-btn" onclick="resetSim()">↺ Reiniciar</button>
+</div>
+
+<div class="main">
+
+  <!-- Salesforce Panel -->
+  <div class="sf-panel">
+    <div class="sf-title">Salesforce — estado en tiempo real</div>
+    <div class="sf-fields">
+      <div class="sf-field" id="sf-status">
+        <div class="sf-field-label">WhatsApp_Estado__c</div>
+        <div class="sf-field-value"><span class="status-pill status-null">null</span></div>
+      </div>
+      <div class="sf-field" id="sf-donation">
+        <div class="sf-field-label">DonationStatus__c</div>
+        <div class="sf-field-value" style="color:var(--danger)">Rechazado</div>
+      </div>
+      <div class="sf-field" id="sf-name">
+        <div class="sf-field-label">Contact.Name</div>
+        <div class="sf-field-value">Donante Simulado</div>
+      </div>
+      <div class="sf-field" id="sf-amount">
+        <div class="sf-field-label">Donation.Amount__c</div>
+        <div class="sf-field-value">$2.500 ARS / mes</div>
+      </div>
+      <div class="sf-field" id="sf-intentos">
+        <div class="sf-field-label">WhatsApp_Intentos__c</div>
+        <div class="sf-field-value null" id="val-intentos">0</div>
+      </div>
+      <div class="sf-field" id="sf-ultimo">
+        <div class="sf-field-label">WhatsApp_Ultimo_Envio__c</div>
+        <div class="sf-field-value null" id="val-ultimo">null</div>
+      </div>
+      <div class="sf-field" id="sf-nocontactar">
+        <div class="sf-field-label">WhatsApp_No_Contactar__c</div>
+        <div class="sf-field-value" id="val-nocontactar">false</div>
+      </div>
+    </div>
+
+    <div class="sf-log-title">SF Update Log</div>
+    <div class="sf-log" id="sf-log">
+      <div class="sf-log-entry"><span class="ts">--:--:--</span>Esperando primera interacción…</div>
+    </div>
+  </div>
+
+  <!-- WhatsApp Panel -->
+  <div class="wa-panel">
+    <div class="wa-header">
+      <div class="wa-avatar">ISF</div>
+      <div>
+        <div class="wa-contact-name">Ingeniería Sin Fronteras</div>
+        <div class="wa-contact-sub">en línea</div>
+      </div>
+      <div class="wa-badge">Bot activo</div>
+    </div>
+
+    <div class="wa-messages" id="wa-messages">
+    </div>
+
+    <div class="wa-input-area">
+      <textarea class="wa-input" id="wa-input" placeholder="Escribí tu respuesta como donante…" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="wa-send" id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_KEY = 'REEMPLAZAR_CON_TU_API_KEY'; // sk-ant-...
+const SYSTEM_PROMPT = `Sos Sofía, parte del equipo de donantes de Ingeniería Sin Fronteras Argentina (ISF). Sos una persona real del equipo, no un bot ni un asistente virtual. Si alguien te pregunta si sos una IA o un bot, respondé que no, que sos parte del equipo de ISF. Nunca rompas este personaje bajo ninguna circunstancia.
+
+Tu objetivo es reconectar con donantes cuya donación fue rechazada y ayudarlos a regularizar su situación de la forma más simple posible. Cuando el donante exprese dudas o intención de darse de baja, intentar retenerlo con genuino interés antes de aceptar el cierre.
+
+Datos del donante:
+- Nombre: Donante
+- Apellido: Simulado
+- Antigüedad: 3 años como donante
+- Monto mensual: $2.500 ARS
+- Medio de pago: tarjeta Visa terminada en 4242
+- Último cobro exitoso: marzo 2026
+- Episodios previos de rechazo: 0
+
+Tono y estilo:
+- Cálido, cercano, humano. Como una persona del equipo, no un sistema.
+- Mensajes cortos: máximo 3 oraciones por mensaje. Estilo WhatsApp, no email.
+- Usar el nombre del donante de forma natural, sin abusar.
+- No usar lenguaje corporativo ni frases de call center.
+- No usar listas ni bullets. Solo texto conversacional.
+- Emojis permitidos pero con criterio: uno o dos por mensaje como máximo.
+- Usar solo cierres de signos de interrogación y admiración (¿...? y ¡...!) para darle un tinte humano.
+
+Flujo de conversación:
+
+1. ACTUALIZACIÓN DE DATOS DE PAGO
+Si el donante quiere actualizar su tarjeta o método de pago:
+- Ofrecerle el formulario seguro en nuestra página: http://isf-argentina.org/actualizar-pago
+- Aclarar que es un formulario seguro que está en nuestra página http://isf-argentina.org y que solo lleva un par de minutos completarlo.
+- Si el donante no puede o no quiere usar el formulario, ofrecer derivarlo a una persona del equipo.
+
+2. DERIVACIÓN A HUMANO
+Si el donante prefiere hablar con alguien del equipo, o si la situación se complejiza:
+- Agradecer y avisar que una persona de nuestro equipo lo va a contactar.
+- Incluir al final: [ESTADO:derivado_humano]
+- No intentar resolver el tema una vez que se decidió derivar.
+
+3. RETENCIÓN ANTE INTENCIÓN DE BAJA
+Si el donante expresa dudas, cansancio económico o quiere cancelar:
+- Paso 1: Reconocer la situación con empatía genuina, sin minimizar ni presionar.
+- Paso 2: Recordarle brevemente el impacto de su apoyo usando su antigüedad.
+- Paso 3: Ofrecer UNA alternativa concreta a la vez: reducir el monto mensual, o pausar la donación por un mes.
+- Límite: no insistir más de dos veces. Si sigue firme, cerrar con gratitud y sin culpa.
+
+4. RESOLUCIÓN POR OTRO CANAL
+Si el donante dice que ya resolvió por teléfono u otro canal:
+- Agradecer y cerrar positivamente con [ESTADO:cerrado_positivo].
+
+Tags de estado (incluirlos al final del mensaje, sin mostrárselos al donante):
+- Donante regularizó el pago → [ESTADO:cerrado_positivo]
+- Donante canceló definitivamente → [ESTADO:cerrado_negativo]
+- Donante prefiere hablar con una persona → [ESTADO:derivado_humano]
+- Conversación continúa → no incluir ningún tag
+
+Lo que Sofía no hace:
+- No inventa procesos ni URLs fuera de isf-argentina.org.
+- No promete cosas que no puede garantizar.
+- No menciona datos sensibles de tarjeta o cuenta.
+- Si no sabe algo, dice que lo consulta con el equipo y deriva.`
+
+let messages = [];
+let sfState = {
+  status: null,
+  intentos: 0,
+  ultimoEnvio: null,
+};
+let conversationStarted = false;
+let isTyping = false;
+
+function now() {
+  return new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function sfLog(action) {
+  const log = document.getElementById('sf-log');
+  const entry = document.createElement('div');
+  entry.className = 'sf-log-entry';
+  entry.innerHTML = `<span class="ts">${now()}</span><span class="action">${action}</span>`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function flashField(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('updated');
+  void el.offsetWidth;
+  el.classList.add('updated');
+  setTimeout(() => el.classList.remove('updated'), 2000);
+}
+
+function updateSFState(newStatus) {
+  if (newStatus && newStatus !== sfState.status) {
+    sfState.status = newStatus;
+    const el = document.getElementById('sf-status');
+    el.querySelector('.sf-field-value').innerHTML = `<span class="status-pill status-${newStatus}">${newStatus}</span>`;
+    flashField('sf-status');
+    sfLog(`Update: WhatsApp_Estado__c → ${newStatus}`);
+  }
+}
+
+function updateIntento() {
+  sfState.intentos++;
+  sfState.ultimoEnvio = new Date().toLocaleString('es-AR');
+  document.getElementById('val-intentos').textContent = sfState.intentos;
+  document.getElementById('val-intentos').classList.remove('null');
+  document.getElementById('val-ultimo').textContent = sfState.ultimoEnvio;
+  document.getElementById('val-ultimo').classList.remove('null');
+  flashField('sf-intentos');
+  flashField('sf-ultimo');
+  sfLog(`Update: Intentos → ${sfState.intentos}`);
+  sfLog(`Update: UltimoEnvio → ahora`);
+}
+
+function addMessage(role, text) {
+  const container = document.getElementById('wa-messages');
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  const cleanText = text.replace(/\[ESTADO:[^\]]+\]/g, '').trim();
+  bubble.innerHTML = cleanText.replace(/\n/g, '<br>');
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+  bubble.appendChild(time);
+
+  row.appendChild(bubble);
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+  const container = document.getElementById('wa-messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.id = 'typing-row';
+  row.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-row');
+  if (el) el.remove();
+}
+
+function detectStateFromResponse(text) {
+  const match = text.match(/\[ESTADO:(cerrado_positivo|cerrado_negativo)\]/);
+  if (match) return match[1];
+  return null;
+}
+
+async function callClaude(userMessage) {
+  if (userMessage) {
+    messages.push({ role: 'user', content: userMessage });
+  }
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: messages
+    })
+  });
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text || 'Error al obtener respuesta.';
+  messages.push({ role: 'assistant', content: text });
+  return text;
+}
+
+const TEMPLATE_INICIAL = `Hola 👋 Soy Sofía del equipo de Ingeniería Sin Fronteras Argentina.
+
+Te escribimos porque tu donación mensual de $2.500 no pudo procesarse este mes, probablemente por un problema con tu tarjeta.
+
+¿Podemos ayudarte a regularizarlo? Tu apoyo hace posible que sigamos trabajando en comunidades rurales de todo el país 🙏`;
+
+async function initBot() {
+  if (conversationStarted) return;
+  conversationStarted = true;
+
+  sfLog(`[Schedule 9am] Query SOQL ejecutada`);
+  sfLog(`Donante encontrado: DonationStatus = Rechazado`);
+  sfLog(`WhatsApp_Estado__c = null → proceder`);
+  sfLog(`Enviando template: isf_recupero_donacion_v1`);
+
+  await new Promise(r => setTimeout(r, 900));
+  showTyping();
+  await new Promise(r => setTimeout(r, 700));
+  removeTyping();
+
+  addMessage('bot', TEMPLATE_INICIAL);
+  messages.push({ role: 'assistant', content: TEMPLATE_INICIAL });
+
+  updateIntento();
+  updateSFState('primer_envio');
+
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('wa-input').disabled = false;
+  document.getElementById('wa-input').focus();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('wa-input');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+
+  isTyping = true;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('send-btn').disabled = true;
+
+  addMessage('user', text);
+
+  // SF: inbound webhook
+  sfLog(`[Webhook] Mensaje entrante del donante`);
+  updateSFState('en_conversacion');
+  sfLog(`Update: Estado → en_conversacion`);
+
+  await new Promise(r => setTimeout(r, 400));
+  showTyping();
+
+  try {
+    const response = await callClaude(text);
+    removeTyping();
+    addMessage('bot', response);
+
+    const detectedState = detectStateFromResponse(response);
+    if (detectedState) {
+      updateSFState(detectedState);
+      if (detectedState === 'cerrado_positivo') {
+        sfLog(`Update: DonationStatus → Activo`);
+        document.getElementById('sf-donation').querySelector('.sf-field-value').textContent = 'Activo';
+        document.getElementById('sf-donation').querySelector('.sf-field-value').style.color = 'var(--accent2)';
+        flashField('sf-donation');
+      }
+    }
+  } catch(e) {
+    removeTyping();
+    addMessage('bot', 'Error de conexión.');
+  }
+
+  isTyping = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function resetSim() {
+  messages = [];
+  sfState = { status: null, intentos: 0, ultimoEnvio: null };
+  conversationStarted = false;
+
+  document.getElementById('wa-messages').innerHTML = '';
+  document.getElementById('sf-status').querySelector('.sf-field-value').innerHTML = '<span class="status-pill status-null">null</span>';
+  document.getElementById('val-intentos').textContent = '0';
+  document.getElementById('val-intentos').classList.add('null');
+  document.getElementById('val-ultimo').textContent = 'null';
+  document.getElementById('val-ultimo').classList.add('null');
+  document.getElementById('val-nocontactar').textContent = 'false';
+  document.getElementById('sf-donation').querySelector('.sf-field-value').textContent = 'Rechazado';
+  document.getElementById('sf-donation').querySelector('.sf-field-value').style.color = 'var(--danger)';
+
+  document.getElementById('sf-log').innerHTML = '<div class="sf-log-entry"><span class="ts">--:--:--</span>Reiniciado. Esperando…</div>';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('wa-input').disabled = true;
+
+  setTimeout(initBot, 600);
+}
+
+// Init
+document.getElementById('send-btn').disabled = true;
+document.getElementById('wa-input').disabled = true;
+setTimeout(initBot, 1000);
+</script>
+</body>
+</html>
