@@ -572,7 +572,13 @@ async function callClaude(userMessage) {
   });
 
   const data = await response.json();
-  const text = data.content?.[0]?.text || 'Error al obtener respuesta.';
+  if (data.error) {
+    throw new Error(data.error.message || JSON.stringify(data.error));
+  }
+  if (!data.content?.[0]?.text) {
+    throw new Error('Respuesta vacía: ' + JSON.stringify(data).slice(0, 200));
+  }
+  const text = data.content[0].text;
   messages.push({ role: 'assistant', content: text });
   return text;
 }
@@ -645,7 +651,8 @@ async function sendMessage() {
     }
   } catch(e) {
     removeTyping();
-    addMessage('bot', 'Error de conexión.');
+    addMessage('bot', '⚠️ Error: ' + e.message);
+    console.error('API error:', e);
   }
 
   isTyping = false;
@@ -691,6 +698,11 @@ function resetSim() {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('send-btn').disabled = true;
   document.getElementById('wa-input').disabled = true;
+
+  document.getElementById('api-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitKey();
+  });
+
   if (API_KEY) {
     setTimeout(initBot, 1000);
   } else {
@@ -710,9 +722,6 @@ function submitKey() {
   setTimeout(initBot, 600);
 }
 
-document.getElementById('api-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') submitKey();
-});
 </script>
 
 <div id="api-screen" style="display:none;position:fixed;inset:0;background:rgba(15,17,23,.97);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;">
