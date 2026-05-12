@@ -564,7 +564,7 @@ async function callClaude(userMessage) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: SYSTEM_PROMPT,
       messages: messages
@@ -572,8 +572,9 @@ async function callClaude(userMessage) {
   });
 
   const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error.message || JSON.stringify(data.error));
+  if (!response.ok || data.error) {
+    const msg = data.error?.message || data.error?.type || JSON.stringify(data).slice(0, 300);
+    throw new Error('API ' + response.status + ': ' + msg);
   }
   if (!data.content?.[0]?.text) {
     throw new Error('Respuesta vacía: ' + JSON.stringify(data).slice(0, 200));
@@ -673,6 +674,8 @@ function autoResize(el) {
 }
 
 function resetSim() {
+  sessionStorage.removeItem('isf_api_key');
+  API_KEY = '';
   messages = [];
   sfState = { status: null, intentos: 0, ultimoEnvio: null };
   conversationStarted = false;
@@ -691,7 +694,11 @@ function resetSim() {
   document.getElementById('send-btn').disabled = true;
   document.getElementById('wa-input').disabled = true;
 
-  setTimeout(initBot, 600);
+  if (API_KEY) {
+    setTimeout(initBot, 600);
+  } else {
+    document.getElementById('api-screen').style.display = 'flex';
+  }
 }
 
 // Init
@@ -719,7 +726,11 @@ function submitKey() {
   API_KEY = val;
   sessionStorage.setItem('isf_api_key', val);
   document.getElementById('api-screen').style.display = 'none';
-  setTimeout(initBot, 600);
+  if (API_KEY) {
+    setTimeout(initBot, 600);
+  } else {
+    document.getElementById('api-screen').style.display = 'flex';
+  }
 }
 
 </script>
