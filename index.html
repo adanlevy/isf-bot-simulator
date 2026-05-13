@@ -330,7 +330,14 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: width .25s ease, min-width .25s ease;
   }
+  .fb-panel.collapsed {
+    width: 36px;
+    min-width: 36px;
+  }
+  .fb-panel.collapsed .fb-body { display: none; }
+  .fb-panel.collapsed .fb-title-text { display: none; }
   .fb-title {
     padding: 12px 16px;
     font-family: var(--mono);
@@ -342,8 +349,29 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    justify-content: space-between;
   }
-  .fb-title::before { content: ''; display: block; width: 6px; height: 6px; background: #f59e0b; border-radius: 1px; }
+  .fb-panel.collapsed .fb-title { border-bottom: none; flex-direction: column; justify-content: flex-start; padding: 12px 0; gap: 10px; align-items: center; }
+  .fb-title:hover { color: #f59e0b; }
+  .fb-title::before { content: ''; display: block; width: 6px; height: 6px; background: #f59e0b; border-radius: 1px; flex-shrink: 0; }
+  .fb-panel.collapsed .fb-title::before { display: block; }
+  .fb-toggle { font-size: 16px; transition: transform .25s; color: #f59e0b; }
+  .fb-panel.collapsed .fb-toggle { transform: rotate(180deg); }
+  .fb-label-vertical {
+    display: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: #f59e0b;
+    font-weight: 500;
+  }
+  .fb-panel.collapsed .fb-label-vertical { display: block; }
   .fb-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
   .fb-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
   .fb-stars { display: flex; gap: 6px; }
@@ -487,6 +515,33 @@
       <button class="wa-send" id="send-btn" onclick="sendMessage()">
         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
+    </div>
+  </div>
+
+  <!-- Feedback Panel -->
+  <div class="fb-panel collapsed">
+    <div class="fb-title" onclick="toggleFeedback()" title="Abrir/cerrar feedback"><span class="fb-title-text">Feedback del equipo</span><span class="fb-label-vertical">Feedback</span><span class="fb-toggle">&#8249;</span></div>
+    <div class="fb-body">
+      <div>
+        <div class="fb-label">Calificación</div>
+        <div class="fb-stars" id="fb-stars">
+          <div class="fb-star" data-v="1" onclick="setRating(1)">1</div>
+          <div class="fb-star" data-v="2" onclick="setRating(2)">2</div>
+          <div class="fb-star" data-v="3" onclick="setRating(3)">3</div>
+          <div class="fb-star" data-v="4" onclick="setRating(4)">4</div>
+          <div class="fb-star" data-v="5" onclick="setRating(5)">5</div>
+        </div>
+      </div>
+      <div>
+        <div class="fb-label">Comentario</div>
+        <textarea class="fb-textarea" id="fb-comment" placeholder="¿Qué mejorarías? ¿Qué estuvo bien?"></textarea>
+      </div>
+      <button class="fb-submit" id="fb-submit" onclick="submitFeedback()" disabled>Guardar en Drive</button>
+      <div class="fb-success" id="fb-success">Guardado en Google Sheets ✓</div>
+      <div>
+        <div class="fb-label" style="margin-bottom:8px;">Enviados esta sesión</div>
+        <div class="fb-history" id="fb-history"><div style="font-size:11px;color:var(--muted);font-family:var(--mono);">Ninguno aún</div></div>
+      </div>
     </div>
   </div>
 
@@ -847,6 +902,10 @@ function resetSim() {
   } else {
     document.getElementById('api-screen').style.display = 'flex';
   }
+}
+
+function toggleFeedback() {
+  document.querySelector('.fb-panel').classList.toggle('collapsed');
 }
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdjWSR6AEXe8CjiL_23e3fG7zHqa3ROW7IvA46Zuv3j1byxMLwFC8vlcaaDBGrd-IPiQ/exec';
