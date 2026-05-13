@@ -321,6 +321,99 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .fb-panel {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .fb-title {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fb-title::before { content: ''; display: block; width: 6px; height: 6px; background: #f59e0b; border-radius: 1px; }
+  .fb-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
+  .fb-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  .fb-stars { display: flex; gap: 6px; }
+  .fb-star {
+    width: 32px; height: 32px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all .15s;
+    color: var(--muted);
+  }
+  .fb-star:hover, .fb-star.active { border-color: #f59e0b; background: rgba(245,158,11,.12); color: #f59e0b; }
+  .fb-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    min-height: 90px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: border-color .2s;
+  }
+  .fb-textarea:focus { border-color: #f59e0b; }
+  .fb-textarea::placeholder { color: var(--muted); }
+  .fb-submit {
+    width: 100%;
+    background: #f59e0b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    color: #000;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .fb-submit:hover { background: #d97706; }
+  .fb-submit:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .fb-success {
+    padding: 10px 12px;
+    background: rgba(16,185,129,.12);
+    border: 1px solid rgba(16,185,129,.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #10b981;
+    text-align: center;
+    display: none;
+  }
+  .fb-history { display: flex; flex-direction: column; gap: 6px; }
+  .fb-entry {
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .fb-entry .stars { color: #f59e0b; letter-spacing: 1px; }
 </style>
 </head>
 <body>
@@ -332,7 +425,7 @@
   <button class="reset-btn" onclick="resetSim()">↺ Reiniciar</button>
 </div>
 
-<div class="main">
+<div class="main" style="display:flex;flex:1;overflow:hidden;">
 
   <!-- Salesforce Panel -->
   <div class="sf-panel">
@@ -756,7 +849,76 @@ function resetSim() {
   }
 }
 
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdjWSR6AEXe8CjiL_23e3fG7zHqa3ROW7IvA46Zuv3j1byxMLwFC8vlcaaDBGrd-IPiQ/exec';
+let fbRating = 0;
+let fbHistory = [];
+
+function setRating(v) {
+  fbRating = v;
+  document.querySelectorAll('.fb-star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.v) <= v);
+  });
+  checkFbReady();
+}
+
+function checkFbReady() {
+  const hasConversation = messages.length > 0;
+  const hasRating = fbRating > 0;
+  document.getElementById('fb-submit').disabled = !(hasConversation && hasRating);
+}
+
+async function submitFeedback() {
+  const comment = document.getElementById('fb-comment').value.trim();
+  const btn = document.getElementById('fb-submit');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  const conversationText = messages.map(m => {
+    const role = m.role === 'user' ? 'DONANTE' : 'SOFÍA';
+    const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+    return role + ': ' + text.replace(/\[ESTADO:[^\]]+\]/g, '').replace(/\[ALERTA:[^\]]+\]/g, '').trim();
+  }).join('\n---\n');
+
+  const payload = {
+    rating: fbRating,
+    comment: comment || '(sin comentario)',
+    sfState: sfState.status || 'sin estado',
+    conversation: conversationText
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const stars = '★'.repeat(fbRating) + '☆'.repeat(5 - fbRating);
+    const entry = document.createElement('div');
+    entry.className = 'fb-entry';
+    entry.innerHTML = '<span class="stars">' + stars + '</span> ' + (comment || '(sin comentario)').slice(0, 60) + (comment.length > 60 ? '...' : '');
+    const history = document.getElementById('fb-history');
+    if (fbHistory.length === 0) history.innerHTML = '';
+    history.appendChild(entry);
+    fbHistory.push(payload);
+
+    document.getElementById('fb-success').style.display = 'block';
+    document.getElementById('fb-comment').value = '';
+    fbRating = 0;
+    document.querySelectorAll('.fb-star').forEach(s => s.classList.remove('active'));
+    setTimeout(() => { document.getElementById('fb-success').style.display = 'none'; }, 3000);
+
+  } catch(err) {
+    alert('Error al guardar: ' + err.message);
+  }
+
+  btn.textContent = 'Guardar en Drive';
+  checkFbReady();
+}
+
 // Init
+
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('send-btn').disabled = true;
   document.getElementById('wa-input').disabled = true;
