@@ -442,7 +442,7 @@ Si el donante expresa dudas, cansancio económico o quiere cancelar:
 - Paso 1: Reconocer la situación con empatía genuina, sin minimizar ni presionar.
 - Paso 2: Recordarle brevemente el impacto de su apoyo usando su antigüedad.
 - Paso 3: Ofrecer UNA alternativa concreta a la vez: reducir el monto mensual, o pausar la donación por un mes.
-- Límite: no insistir más de dos veces. Si sigue firme, cerrar con gratitud y sin culpa.
+- La baja es el último recurso absoluto. Antes de aceptarla, agotá todas las alternativas una a una: bajar el monto al mínimo posible, pausar un mes, cambiar la fecha de débito, derivar a una persona del equipo. Solo aceptar la baja si el donante la pide de forma explícita y reiterada después de haber recibido todas las opciones. Nunca propongas la baja vos — que sea siempre iniciativa del donante.
 
 4. RESOLUCIÓN POR OTRO CANAL
 Si el donante dice que ya resolvió por teléfono u otro canal:
@@ -453,6 +453,13 @@ Tags de estado (incluirlos al final del mensaje, sin mostrárselos al donante):
 - Donante canceló definitivamente → [ESTADO:cerrado_negativo]
 - Donante prefiere hablar con una persona → [ESTADO:derivado_humano]
 - Conversación continúa → no incluir ningún tag
+
+Alertas informativas (la conversación NO se interrumpe, pero Make notifica al equipo):
+Cuando el donante mencione alguna de estas situaciones, incluí el tag correspondiente AL FINAL del mensaje, además de responderle con naturalidad y avisarle que vas a pasarle el dato al equipo:
+- No le están llegando los emails de ISF → [ALERTA:emails]
+- Se anotó como voluntario y no lo contactaron → [ALERTA:voluntario]
+- Pregunta si ISF puede ayudar a una comunidad específica → [ALERTA:comunidad]
+Podés combinar un tag de estado con uno de alerta si corresponde.
 
 Lo que Sofía no hace:
 - No inventa procesos ni URLs fuera de isf-argentina.org.
@@ -551,9 +558,37 @@ function removeTyping() {
 }
 
 function detectStateFromResponse(text) {
-  const match = text.match(/\[ESTADO:(cerrado_positivo|cerrado_negativo)\]/);
+  const match = text.match(/\[ESTADO:(cerrado_positivo|cerrado_negativo|derivado_humano)\]/);
   if (match) return match[1];
   return null;
+}
+
+function detectAlertsFromResponse(text) {
+  const alerts = [];
+  const regex = /\[ALERTA:(\w+)\]/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    alerts.push(match[1]);
+  }
+  return alerts;
+}
+
+const ALERT_LABELS = {
+  emails: 'No le llegan los emails',
+  voluntario: 'Se anoto como voluntario sin respuesta',
+  comunidad: 'Consulta sobre comunidad especifica'
+};
+
+function showAlertNotification(alerts) {
+  alerts.forEach(alert => {
+    const label = ALERT_LABELS[alert] || alert;
+    const notif = document.createElement('div');
+    notif.style.cssText = 'margin: 4px 0; padding: 8px 12px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); border-radius: 8px; font-size: 12px; color: #f59e0b; font-family: monospace;';
+    notif.innerHTML = '&#9888; Alerta Make &rarr; ' + label + ' <span style="opacity:.6">(equipo notificado)</span>';
+    document.getElementById('wa-messages').appendChild(notif);
+    document.getElementById('wa-messages').scrollTop = 99999;
+    sfLog('ALERTA: ' + label);
+  });
 }
 
 async function callClaude(userMessage) {
@@ -592,7 +627,7 @@ async function callClaude(userMessage) {
 
 const TEMPLATE_INICIAL = `Hola 👋 Soy Sofía del equipo de Ingeniería Sin Fronteras Argentina.
 
-Te escribimos porque tu donación mensual de $2.500 no pudo procesarse este mes.
+Te escribimos porque tu donación mensual de $2.500 no pudo procesarse este mes con tu tarjeta de crédito.
 
 ¿Podemos ayudarte a regularizarlo? Tu apoyo hace posible que sigamos trabajando en comunidades rurales de todo el país 🙏`;
 
@@ -645,6 +680,9 @@ async function sendMessage() {
     const response = await callClaude(text);
     removeTyping();
     addMessage('bot', response);
+
+    const alerts = detectAlertsFromResponse(response);
+    if (alerts.length) showAlertNotification(alerts);
 
     const detectedState = detectStateFromResponse(response);
     if (detectedState) {
