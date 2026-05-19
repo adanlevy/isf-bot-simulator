@@ -904,8 +904,13 @@ async function sendMessage() {
 
   // SF: inbound webhook
   sfLog(`[Webhook] Mensaje entrante del donante`);
-  updateSFState('en_conversacion');
-  sfLog(`Update: Estado → en_conversacion`);
+  const estadosProtegidos = ['derivado_humano', 'cerrado_negativo'];
+  if (!estadosProtegidos.includes(sfState.status)) {
+    updateSFState('en_conversacion');
+    sfLog(`Update: Estado → en_conversacion`);
+  } else {
+    sfLog(`Estado preservado: ${sfState.status} (no se sobreescribe)`);
+  }
 
   await new Promise(r => setTimeout(r, 400));
   showTyping();
