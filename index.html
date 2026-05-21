@@ -37,7 +37,6 @@
     overflow: hidden;
   }
 
-  /* Header */
   .header {
     padding: 12px 20px;
     background: var(--surface);
@@ -51,7 +50,6 @@
   .header h1 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text); }
   .header span { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
 
-  /* Main layout */
   .main {
     display: flex;
     flex: 1;
@@ -59,7 +57,6 @@
     gap: 0;
   }
 
-  /* === SALESFORCE PANEL === */
   .sf-panel {
     width: 280px;
     min-width: 280px;
@@ -127,6 +124,7 @@
   .status-en_conversacion { background: rgba(59,130,246,.15); color: var(--accent); }
   .status-cerrado_positivo { background: rgba(16,185,129,.15); color: var(--accent2); }
   .status-cerrado_negativo { background: rgba(239,68,68,.15); color: var(--danger); }
+  .status-derivado_humano { background: rgba(168,85,247,.15); color: #a855f7; }
 
   .sf-log-title {
     padding: 10px 16px;
@@ -154,7 +152,6 @@
   .sf-log-entry .ts { color: rgba(100,116,139,.6); margin-right: 6px; }
   .sf-log-entry .action { color: var(--accent2); }
 
-  /* === WHATSAPP PANEL === */
   .wa-panel {
     flex: 1;
     display: flex;
@@ -258,7 +255,6 @@
   .typing-dot:nth-child(3) { animation-delay: .4s; }
   @keyframes typingDot { 0%,80%,100%{transform:scale(1);opacity:.4} 40%{transform:scale(1.2);opacity:1} }
 
-  /* Input area */
   .wa-input-area {
     padding: 10px 12px;
     background: var(--surface);
@@ -300,7 +296,6 @@
   .wa-send svg { width: 18px; height: 18px; fill: white; }
   .wa-send:disabled { background: var(--border); cursor: not-allowed; }
 
-  /* Reset button */
   .reset-btn {
     margin-left: 8px;
     padding: 6px 14px;
@@ -317,7 +312,6 @@
   }
   .reset-btn:hover { border-color: var(--danger); color: var(--danger); }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -450,12 +444,11 @@
   <div class="header-dot"></div>
   <h1>ISF Bot Simulator</h1>
   <span>Make.com + Salesforce + WhatsApp + IA</span>
-  <button class="reset-btn" onclick="resetSim()">↺ Reiniciar</button>
+  <button class="reset-btn" onclick="resetSim()">&#8634; Reiniciar</button>
 </div>
 
 <div class="main" style="display:flex;flex:1;overflow:hidden;">
 
-  <!-- Salesforce Panel -->
   <div class="sf-panel">
     <div class="sf-title">Salesforce — estado en tiempo real</div>
     <div class="sf-fields">
@@ -499,17 +492,16 @@
 
     <div class="sf-log-title">SF Update Log</div>
     <div class="sf-log" id="sf-log">
-      <div class="sf-log-entry"><span class="ts">--:--:--</span>Esperando primera interacción…</div>
+      <div class="sf-log-entry"><span class="ts">--:--:--</span>Esperando primera interacci&#243;n&#8230;</div>
     </div>
   </div>
 
-  <!-- WhatsApp Panel -->
   <div class="wa-panel">
     <div class="wa-header">
       <div class="wa-avatar">ISF</div>
       <div>
-        <div class="wa-contact-name">Ingeniería Sin Fronteras</div>
-        <div class="wa-contact-sub">en línea</div>
+        <div class="wa-contact-name">Ingenier&#237;a Sin Fronteras</div>
+        <div class="wa-contact-sub">en l&#237;nea</div>
       </div>
       <div class="wa-badge">Bot activo</div>
     </div>
@@ -518,7 +510,7 @@
     </div>
 
     <div class="wa-input-area">
-      <textarea class="wa-input" id="wa-input" placeholder="Escribí tu respuesta como donante…" rows="1"
+      <textarea class="wa-input" id="wa-input" placeholder="Escrib&#237; tu respuesta como donante&#8230;" rows="1"
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="wa-send" id="send-btn" onclick="sendMessage()">
         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -526,12 +518,11 @@
     </div>
   </div>
 
-  <!-- Feedback Panel -->
   <div class="fb-panel collapsed">
     <div class="fb-title" onclick="toggleFeedback()" title="Abrir/cerrar feedback"><span class="fb-title-text">Feedback del equipo</span><span class="fb-label-vertical">Feedback</span><span class="fb-toggle">&#8249;</span></div>
     <div class="fb-body">
       <div>
-        <div class="fb-label">Calificación</div>
+        <div class="fb-label">Calificaci&#243;n</div>
         <div class="fb-stars" id="fb-stars">
           <div class="fb-star" data-v="1" onclick="setRating(1)">1</div>
           <div class="fb-star" data-v="2" onclick="setRating(2)">2</div>
@@ -542,13 +533,13 @@
       </div>
       <div>
         <div class="fb-label">Comentario</div>
-        <textarea class="fb-textarea" id="fb-comment" placeholder="¿Qué mejorarías? ¿Qué estuvo bien?"></textarea>
+        <textarea class="fb-textarea" id="fb-comment" placeholder="&#191;Qu&#233; mejorar&#237;as? &#191;Qu&#233; estuvo bien?"></textarea>
       </div>
       <button class="fb-submit" id="fb-submit" onclick="submitFeedback()" disabled>Guardar en Drive</button>
-      <div class="fb-success" id="fb-success">Guardado en Google Sheets ✓</div>
+      <div class="fb-success" id="fb-success">Guardado en Google Sheets &#10003;</div>
       <div>
-        <div class="fb-label" style="margin-bottom:8px;">Enviados esta sesión</div>
-        <div class="fb-history" id="fb-history"><div style="font-size:11px;color:var(--muted);font-family:var(--mono);">Ninguno aún</div></div>
+        <div class="fb-label" style="margin-bottom:8px;">Enviados esta sesi&#243;n</div>
+        <div class="fb-history" id="fb-history"><div style="font-size:11px;color:var(--muted);font-family:var(--mono);">Ninguno a&#250;n</div></div>
       </div>
     </div>
   </div>
@@ -557,6 +548,9 @@
 
 <script>
 let API_KEY = sessionStorage.getItem('isf_api_key') || '';
+const DONOR_ID_SIM = 'a09f200000DEMO00AA';
+const FORMULARIO_URL = 'https://www.isf-argentina.org/formularios/actualizacion-datos-de-donante?donationId=' + DONOR_ID_SIM;
+
 const SYSTEM_PROMPT = `## Identidad
 
 Sos Maitena, parte del equipo de donantes de Ingeniería Sin Fronteras Argentina (ISF).
@@ -580,16 +574,17 @@ Revisá el campo Estado conversación WhatsApp antes de responder:
 - null o en_conversacion: flujo normal de recuperación.
 - cerrado_positivo: este episodio ya se resolvió bien. Respondé brevemente y con calidez. No reabras el flujo de recuperación salvo que el donante mencione un problema concreto nuevo.
 - cerrado_negativo: el donante canceló en este episodio. Respondé con dignidad. Si muestra intención de volver, facilitalo con calidez. Si es solo un cierre, respondé brevemente y cerrá bien.
-- derivado_humano: no deberías estar recibiendo este mensaje. Si por algún error llegás acá, respondé solo: "Ya le avisamos al equipo, te van a contactar pronto."
+- derivado_humano: el donante ya fue derivado a un agente del equipo. Confirmá con calidez que el equipo está al tanto y va a contactarlo pronto. Variá la redacción cada vez. NUNCA ofrezcas ayuda directa, NUNCA preguntes de qué se trata, NUNCA reabras el flujo de recuperación — aunque el donante insista, cambie de tema, pregunte cuándo lo llaman, o diga que quiere hablar de su donación. Si pregunta cuándo lo contactan, decile que vas a avisarle al equipo pero que el timing no está en tus manos. Si pide algo puntual como el formulario, podés dárselo, pero sin abrir conversación ni hacer preguntas. Cualquier otra cosa, redirigí al agente.
 
 ## Objetivo
 
-Reconectar con donantes cuya donación fue rechazada y ayudarlos a regularizar su situación de la forma más simple posible.
+Reconectar con donantes cuya donación fue rechazada y ayudarlos a actualizar sus datos y retomar el pago de la forma más simple posible.
 Cuando el donante exprese dudas o intención de darse de baja, intentar retenerlo con genuino interés antes de aceptar el cierre.
 
 ## Datos del donante
 
 Nombre: Donante Simulado
+Id donación (18 dígitos): a09f200000DEMO00AA
 Antigüedad: 36 meses como donante
 Monto mensual: $2.500 ARS
 Medio de pago: Visa Crédito
@@ -606,6 +601,8 @@ Estado conversación WhatsApp:
 - Usá formas correctas y consideradas: "Te parece bien...?", "Con gusto", "Por supuesto", "Entiendo perfectamente". Podés ser cercana sin ser canchera.
 - Mensajes cortos: máximo 3 oraciones por mensaje. Estilo WhatsApp, no email.
 - Usar el nombre del donante de forma natural, sin abusar.
+- Evitá la palabra "regularizar" — suena a deuda o mora. Preferí "actualizar los datos", "retomar el pago", "ponerse al día".
+- Cuando describas el formulario, transmitir que es rápido e inmediato: "es solo un toque" o "lo completás en un momento" — nunca "un par de minutos".
 - No usar lenguaje corporativo ni frases de call center ("en qué le puedo ayudar hoy").
 - No usar listas ni bullets. Solo texto conversacional.
 - Emojis permitidos pero con criterio: uno o dos por mensaje como máximo.
@@ -615,14 +612,17 @@ Estado conversación WhatsApp:
 
 ### 1. Actualización de datos de pago
 Si el donante quiere actualizar su tarjeta o método de pago:
-- Ofrecerle el formulario seguro: [URL_FORMULARIO_PENDIENTE]
-- Aclarar que es un formulario seguro que está en nuestra página http://isf-argentina.org y que solo lleva un par de minutos completarlo.
+- Ofrecerle el formulario seguro: https://www.isf-argentina.org/formularios/actualizacion-datos-de-donante?donationId=a09f200000DEMO00AA
+- Aclarar que es un formulario seguro que está en nuestra página http://isf-argentina.org y y lo completás en un momento.
 - Si el donante no puede o no quiere usar el formulario, ofrecer derivarlo a una persona del equipo.
 
 Medios de pago aceptados: Visa Crédito, Mastercard, Amex, Cabal, Naranja (crédito), Visa Débito, Mastercard Débito, CBU bancario.
 NO aceptados: Mercado Pago, Ualá, ni ningún CVU de billetera virtual o medio recargable. Si el donante ofrece uno de estos, explicarle con amabilidad que por el momento solo operamos con los medios mencionados y ofrecerle alternativas.
 
-Sistema de débito: el sistema intenta debitar desde el primer día hábil del mes y hace reintentos hasta el día 25. No es posible programar fechas especiales de débito. Para CBU o débito en cuenta: debe haber fondos disponibles al momento del intento.
+Sistema de débito: el comportamiento varía según el medio de pago:
+- Tarjeta de crédito/débito: reintentos desde el primer día hábil hasta el día 25 del mes.
+- CBU bancario: solo 2 intentos — el primer día hábil del mes y luego entre el 17 y el 20. No hay más reintentos.
+En ningún caso es posible programar fechas especiales de débito.
 
 ### 2. Derivación a humano
 Si el donante prefiere hablar con alguien del equipo, o si la situación se complejiza:
@@ -650,14 +650,23 @@ Si el donante confirma la baja: generá un número de gestión con el formato BA
 
 Límite: La baja es el último recurso absoluto. Solo aceptarla si el donante la pide de forma explícita y reiterada después de haber recibido todas las opciones. Nunca propongas la baja vos.
 
-### 4. Resolución por otro canal
+### 4. Recupero de cuotas no cobradas
+Cuando el donante ya actualizó sus datos y le quedan meses sin cobrar (Episodios_Rechazo__c > 0):
+- Ofrecerle proactivamente recuperar las cuotas no cobradas incluyéndolas en el próximo débito.
+- Usar Episodios_Rechazo__c para calcular los meses pendientes. Monto total a debitar: monto mensual × (meses perdidos + 1).
+- Si acepta: informarle el monto exacto que se debitará ese mes (para que deje los fondos disponibles) y cerrar como [ESTADO:cerrado_positivo]. El equipo lo carga manualmente leyendo la conversación.
+- NUNCA llamarlo "donación adicional", "aporte extra" ni ofrecer transferencia — es el recupero estándar de cuotas.
+- NUNCA derivar a humano para esto — es un caso simple y habitual.
+- Si hay más de un mes no cobrado, incluirlos todos en la propuesta.
+
+### 5. Resolución por otro canal
 Si el donante dice que ya resolvió el problema por teléfono u otro canal:
 - Agradecer y cerrar positivamente con [ESTADO:cerrado_positivo].
 
 ## Cierres y tags de estado
 
 Al final del mensaje de cierre, incluir siempre uno de estos tags (sin mostrárselo al donante):
-Donante regularizó el pago → [ESTADO:cerrado_positivo]
+Donante retomó el pago o acordó el recupero → [ESTADO:cerrado_positivo]
 Donante canceló definitivamente → [ESTADO:cerrado_negativo]
 Donante prefiere hablar con una persona → [ESTADO:derivado_humano]
 Conversación continúa → (no incluir ningún tag)
@@ -694,7 +703,7 @@ Retención — reducción de monto:
 "Entiendo, a veces los tiempos aprietan. Si querés podemos bajar el monto por ahora — cualquier cosa que puedas sostener suma. Te serviría eso?"
 
 Derivación a formulario:
-"Para actualizar los datos de tu tarjeta podés hacerlo desde acá, es rápido y seguro: [URL_FORMULARIO_PENDIENTE]"
+"Para actualizar los datos de tu tarjeta podés hacerlo desde acá, es rápido y seguro: https://www.isf-argentina.org/formularios/actualizacion-datos-de-donante?donationId=a09f200000DEMO00AA"
 
 Derivación a humano:
 "Sin problema, te puedo pasar con alguien del equipo para que lo coordinen directamente. Te parece?"
@@ -763,7 +772,7 @@ function addMessage(role, text) {
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
 
-  const cleanText = text.replace(/\[ESTADO:[^\]]+\]/g, '').trim();
+  const cleanText = text.replace(/\[ESTADO:[^\]]+\]/g, '').replace(/\[ALERTA:[^\]]+\]/g, '').trim();
   bubble.innerHTML = cleanText.replace(/\n/g, '<br>');
 
   const time = document.createElement('div');
@@ -809,8 +818,8 @@ function detectAlertsFromResponse(text) {
 
 const ALERT_LABELS = {
   emails: 'No le llegan los emails',
-  voluntario: 'Se anoto como voluntario sin respuesta',
-  comunidad: 'Consulta sobre comunidad especifica'
+  voluntario: 'Se anotó como voluntario sin respuesta',
+  general: 'Consulta no relacionada con el pago'
 };
 
 function showAlertNotification(alerts) {
@@ -848,13 +857,11 @@ async function callClaude(userMessage) {
     const msg = data.error?.message || data.error?.type || JSON.stringify(data).slice(0, 300);
     throw new Error('API ' + response.status + ': ' + msg);
   }
-  // Find text block (may come after tool_use blocks)
   const textBlock = data.content?.find(b => b.type === 'text');
   if (!textBlock?.text) {
     throw new Error('Respuesta vacía: ' + JSON.stringify(data).slice(0, 200));
   }
   const text = textBlock.text;
-  // Store full content array for multi-turn tool use compatibility
   messages.push({ role: 'assistant', content: data.content });
   return text;
 }
@@ -863,7 +870,7 @@ const TEMPLATE_INICIAL = `Hola 👋 Soy Maitena del equipo de Ingeniería Sin Fr
 
 Te escribimos porque tu donación mensual de $2.500 no pudo procesarse este mes con tu Visa Crédito.
 
-¿Podemos ayudarte a regularizarlo? Tu apoyo hace posible que sigamos trabajando en comunidades rurales de todo el país 🙏`;
+Podemos ayudarte a regularizarlo? Tu apoyo hace posible que sigamos trabajando en comunidades rurales de todo el país 🙏`;
 
 async function initBot() {
   if (conversationStarted) return;
@@ -902,7 +909,6 @@ async function sendMessage() {
 
   addMessage('user', text);
 
-  // SF: inbound webhook
   sfLog(`[Webhook] Mensaje entrante del donante`);
   const estadosProtegidos = ['derivado_humano', 'cerrado_negativo'];
   if (!estadosProtegidos.includes(sfState.status)) {
@@ -973,7 +979,7 @@ function resetSim() {
   document.getElementById('sf-donation').querySelector('.sf-field-value').textContent = 'Rechazado';
   document.getElementById('sf-donation').querySelector('.sf-field-value').style.color = 'var(--danger)';
 
-  document.getElementById('sf-log').innerHTML = '<div class="sf-log-entry"><span class="ts">--:--:--</span>Reiniciado. Esperando…</div>';
+  document.getElementById('sf-log').innerHTML = '<div class="sf-log-entry"><span class="ts">--:--:--</span>Reiniciado. Esperando&#8230;</div>';
   document.getElementById('send-btn').disabled = true;
   document.getElementById('wa-input').disabled = true;
 
@@ -1018,7 +1024,6 @@ async function submitFeedback() {
     if (typeof m.content === 'string') {
       text = m.content;
     } else if (Array.isArray(m.content)) {
-      // Extract only text blocks, skip tool_use and tool_result blocks
       text = m.content
         .filter(b => b.type === 'text')
         .map(b => b.text)
@@ -1067,8 +1072,6 @@ async function submitFeedback() {
   checkFbReady();
 }
 
-// Init
-
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('send-btn').disabled = true;
   document.getElementById('wa-input').disabled = true;
@@ -1093,13 +1096,8 @@ function submitKey() {
   API_KEY = val;
   sessionStorage.setItem('isf_api_key', val);
   document.getElementById('api-screen').style.display = 'none';
-  if (API_KEY) {
-    setTimeout(initBot, 600);
-  } else {
-    document.getElementById('api-screen').style.display = 'flex';
-  }
+  setTimeout(initBot, 600);
 }
-
 </script>
 
 <div id="api-screen" style="display:none;position:fixed;inset:0;background:rgba(15,17,23,.97);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;">
