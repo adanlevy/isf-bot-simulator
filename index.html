@@ -1,902 +1,1168 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISF — Gestión de conversaciones</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
-<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ISF Bot Simulator</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --isf:#0075bf;--isf-dark:#005a94;--isf-light:#e8f4fc;
-  --bg:#ffffff;--bg-2:#f0f2f5;--bg-3:#e9edef;
-  --text:#111b21;--text-2:#667781;--text-3:#8696a0;
-  --border:rgba(0,0,0,0.1);--border-2:rgba(0,0,0,0.18);
-  --r:8px;--rl:12px;
-  --sent:#d9fdd3;--sent-text:#111b21;
-  --recv:#ffffff;--recv-text:#111b21;
-  --human-bubble:#cce4f7;--human-text:#0a3d62;
-}
-@media(prefers-color-scheme:dark){:root{
-  --bg:#111b21;--bg-2:#202c33;--bg-3:#0d1418;
-  --text:#e9edef;--text-2:#8696a0;--text-3:#667781;
-  --border:rgba(255,255,255,0.08);--border-2:rgba(255,255,255,0.15);
-  --sent:#005c4b;--sent-text:#e9edef;
-  --recv:#202c33;--recv-text:#e9edef;
-  --human-bubble:#1a3a52;--human-text:#cce4f7;
-}}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-2);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* Topbar */
-.topbar{height:52px;background:var(--isf);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
-.topbar-brand{display:flex;align-items:center;gap:10px;color:#fff}
-.topbar-logo{height:28px;width:auto;display:block}
-.topbar-logo-fallback{height:28px;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:#fff;letter-spacing:0.3px}
-.topbar-right{display:flex;align-items:center;gap:6px}
-.icon-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background 0.15s}
-.icon-btn:hover{background:rgba(255,255,255,0.25)}
-.poll-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.4)}
-.poll-dot.active{background:#4ade80;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  :root {
+    --bg: #0f1117;
+    --surface: #171b25;
+    --surface2: #1e2330;
+    --border: #2a3040;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --wa-in: #1e2d20;
+    --wa-out: #1a2a40;
+    --wa-header: #111b16;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
 
-/* Layout */
-.app{display:grid;grid-template-columns:330px 1fr;flex:1;overflow:hidden}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Sidebar */
-.sidebar{background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.sidebar-top{padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-2);flex-shrink:0}
-.tabs{display:flex;gap:3px}
-.tab{flex:1;padding:5px 2px;font-size:10px;text-align:center;border-radius:var(--r);border:none;cursor:pointer;background:transparent;color:var(--text-2);line-height:1.3;font-family:inherit;transition:background 0.1s}
-.tab.active{background:var(--isf-light);color:var(--isf);font-weight:600}
-.tab:hover:not(.active){background:var(--bg-3)}
-.tab-n{display:block;font-size:15px;font-weight:600;line-height:1.2}
-.tab.active .tab-n{color:var(--isf)}
-.donor-list{flex:1;overflow-y:auto}
-.tab-tags{padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-2);display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-/* Donor cards — WhatsApp style */
-.donor-card{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px;transition:background 0.1s}
-.donor-card:hover{background:var(--bg-2)}
-.donor-card.sel{background:var(--bg-2)}
-.donor-card.unread{background:var(--bg)}
-.donor-card.unread .dc-name{font-weight:700}
-.donor-card.unread .dc-preview{color:var(--text);font-weight:500}
-.donor-card.unread .dc-time{color:var(--isf);font-weight:600}
-.dc-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
-.dc-body{flex:1;min-width:0}
-.dc-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}
-.dc-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
-.dc-time{font-size:11px;color:var(--text-2);flex-shrink:0}
-.dc-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.dc-preview{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-.dc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
-.unread-count{background:var(--isf);color:#fff;border-radius:99px;font-size:11px;font-weight:700;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+  .header {
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-dot { width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .header h1 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text); }
+  .header span { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
 
-/* Sidebar info */
-.sidebar-info{border-top:1px solid var(--border);padding:10px 16px;flex-shrink:0;display:none;background:var(--bg-2)}
-.ir{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
-.il{color:var(--text-2)}.iv{font-weight:600}
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
 
-/* Conv area */
-.conv{display:flex;flex-direction:column;overflow:hidden;background:var(--bg-3)}
-.conv-bg{position:absolute;inset:0;opacity:0.04;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-3);font-size:13px}
-.conv-header{background:var(--bg-2);border-bottom:1px solid var(--border);padding:10px 16px;flex-shrink:0}
-.ch-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:12px}
-.ch-id{display:flex;align-items:center;gap:10px}
-.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.cn{font-size:14px;font-weight:600}
-.conv-back{align-items:center;gap:8px;background:none;border:none;color:#fff;cursor:pointer;font-size:15px;padding:0;margin-right:8px}.cm{font-size:12px;color:var(--text-2);margin-top:1px}
-.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid;white-space:nowrap}
-.ph{background:#e8f4fc;color:var(--isf);border-color:#9ac8e8}.pp{background:#e8f8ee;color:#166534;border-color:#86efac}.pn{background:#fef2f2;color:#991b1b;border-color:#fca5a5}.pr{background:#fffbeb;color:#92400e;border-color:#fcd34d}.pec{background:#faf5ff;color:#7e22ce;border-color:#c4b5fd}
-.actions{display:flex;gap:5px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;font-size:11px;font-weight:500;border-radius:var(--r);border:none;cursor:pointer;font-family:inherit;transition:all 0.12s}
-.btn-default{background:var(--bg);color:var(--text);border:1px solid var(--border-2)}.btn-default:hover{background:var(--bg-3)}
-.btn-blue{background:var(--isf);color:#fff}.btn-blue:hover{background:var(--isf-dark)}
-.btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
-.btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
-.btn-orange{background:#d97706;color:#fff}.btn-orange:hover{background:#b45309}
-.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:500;margin:1px 2px 1px 0}
-.bh{background:#e8f4fc;color:var(--isf)}.bn{background:#fef2f2;color:#991b1b}.bp{background:#e8f8ee;color:#166534}.br{background:#fffbeb;color:#92400e}.bec{background:#faf5ff;color:#7e22ce}
-.bot-on{background:#e8f8ee;color:#166534;border:1px solid #86efac}
-.bot-off{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}
-.bot-resume{background:#fffbeb;color:#92400e;border:1px solid #fcd34d}
+  .sf-panel {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sf-title {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sf-title::before { content: ''; display: block; width: 6px; height: 6px; background: var(--accent); border-radius: 1px; }
 
-/* Chat */
-.chat{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;position:relative}
-.msg{max-width:68%;display:flex;flex-direction:column}
-.m-bot{align-self:flex-start}.m-donor{align-self:flex-end}.m-human{align-self:flex-start}
-.mlabel{font-size:10px;color:var(--text-3);margin-bottom:2px;display:flex;align-items:center;gap:3px}
-.mlabel-r{justify-content:flex-end}
-.bubble{padding:7px 11px;font-size:13px;line-height:1.5;word-break:break-word;white-space:pre-wrap;position:relative}
-.bbot{background:var(--recv);color:var(--recv-text);border-radius:0 8px 8px 8px;box-shadow:0 1px 1px rgba(0,0,0,0.1)}
-.bdonor{background:var(--sent);color:var(--sent-text);border-radius:8px 0 8px 8px;box-shadow:0 1px 1px rgba(0,0,0,0.1)}
-.bhuman{background:var(--human-bubble);color:var(--human-text);border-radius:0 8px 8px 8px;box-shadow:0 1px 1px rgba(0,0,0,0.1)}
-.mtime{font-size:10px;color:var(--text-3);margin-top:2px}
-.mtime-r{text-align:right}
+  .sf-fields { padding: 12px; overflow-y: auto; flex: 1; }
+  .sf-field {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: border-color .3s, background .3s;
+  }
+  .sf-field.updated {
+    border-color: var(--accent);
+    background: rgba(59,130,246,.08);
+    animation: fieldFlash .6s ease;
+  }
+  @keyframes fieldFlash { 0%{background:rgba(59,130,246,.25)} 100%{background:rgba(59,130,246,.08)} }
+  .sf-field-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .sf-field-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .sf-field-value.null { color: var(--muted); font-style: italic; }
 
-/* Input area */
-.input-area{background:var(--bg-2);border-top:1px solid var(--border);padding:10px 16px;flex-shrink:0}
-.emoji-btn{width:32px;height:32px;border-radius:50%;background:transparent;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0.6;transition:opacity 0.1s}
-.emoji-btn:hover{opacity:1}
-.emoji-picker{position:absolute;bottom:70px;left:16px;background:var(--bg);border:1px solid var(--border-2);border-radius:var(--rl);box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:10px;display:none;flex-wrap:wrap;gap:4px;width:280px;z-index:50;max-height:200px;overflow-y:auto}
-.emoji-picker.open{display:flex}
-.ep-emoji{font-size:20px;cursor:pointer;padding:4px;border-radius:6px;line-height:1;transition:background 0.1s}
-.ep-emoji:hover{background:var(--bg-2)}
-.window-warning{background:#fff8e6;border:1px solid #fcd34d;border-radius:var(--r);padding:10px 14px;margin-bottom:8px;font-size:12px;color:#92400e;display:flex;align-items:flex-start;gap:8px}
-.input-row{display:flex;gap:8px;align-items:flex-end;background:var(--bg);border-radius:24px;padding:6px 6px 6px 14px;border:1px solid var(--border)}
-.msg-ta{flex:1;padding:4px 0;font-size:13px;border:none;background:transparent;color:var(--text);resize:none;font-family:inherit;line-height:1.5;max-height:100px;overflow-y:auto}
-.msg-ta:focus{outline:none}
-.msg-ta:disabled{opacity:0.5;cursor:not-allowed}
-.send-btn{width:36px;height:36px;border-radius:50%;background:var(--isf);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s}
-.send-btn:hover{background:var(--isf-dark)}
-.waiting-reply{background:var(--bg-2);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:8px}
-.ai-row{margin-top:7px;display:flex;align-items:flex-start;gap:6px;font-size:11px;padding:0 4px}
-.ai-lbl{color:var(--text-3);flex-shrink:0;display:flex;align-items:center;gap:3px;padding-top:1px}
-.ai-txt{color:var(--isf);cursor:pointer;line-height:1.5;border-bottom:1px dashed var(--isf)}
-.ai-loading{color:var(--text-3);font-style:italic}
-.ai-rbtn{padding:2px 6px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;font-size:10px;margin-left:4px;font-family:inherit}
+  .status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+  .status-null { background: rgba(100,116,139,.15); color: var(--muted); }
+  .status-primer_envio { background: rgba(245,158,11,.15); color: var(--warn); }
+  .status-en_conversacion { background: rgba(59,130,246,.15); color: var(--accent); }
+  .status-cerrado_positivo { background: rgba(16,185,129,.15); color: var(--accent2); }
+  .status-cerrado_negativo { background: rgba(239,68,68,.15); color: var(--danger); }
+  .status-derivado_humano { background: rgba(168,85,247,.15); color: #a855f7; }
 
-/* Notifications */
-.notif-popup{position:fixed;top:60px;right:16px;background:var(--bg);border:1px solid var(--border-2);border-radius:var(--rl);box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:14px 16px;width:300px;z-index:200;animation:slideIn 0.2s ease;cursor:pointer}
-.notif-popup:hover{background:var(--bg-2)}
-.notif-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.notif-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
-.notif-preview{font-size:12px;color:var(--text-2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.notif-close{background:none;border:none;color:var(--text-2);cursor:pointer;font-size:18px;padding:0;line-height:1}
-@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
-.new-msg-badge{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--isf);color:#fff;padding:7px 16px;border-radius:99px;font-size:12px;cursor:pointer;display:none;align-items:center;gap:6px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
-.new-msg-badge.show{display:flex}
+  .sf-log-title {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sf-log-title::before { content: ''; display: block; width: 6px; height: 6px; background: var(--warn); border-radius: 1px; }
+  .sf-log { padding: 8px 12px; max-height: 160px; overflow-y: auto; }
+  .sf-log-entry {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    line-height: 1.5;
+  }
+  .sf-log-entry .ts { color: rgba(100,116,139,.6); margin-right: 6px; }
+  .sf-log-entry .action { color: var(--accent2); }
 
-/* Modal */
-.overlay-wrap{position:absolute;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:100}
-.overlay-wrap.open{display:flex}
-.modal{background:var(--bg);border-radius:var(--rl);border:1px solid var(--border);width:500px;max-height:88vh;overflow-y:auto;flex-shrink:0}
-.modal-h{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--isf);border-radius:var(--rl) var(--rl) 0 0}
-.modal-title{font-size:14px;font-weight:600;color:#fff}
-.modal-h .icon-btn{background:rgba(255,255,255,0.15);border:none}
-.modal-body{padding:16px;display:flex;flex-direction:column;gap:10px}
-.field{display:flex;flex-direction:column;gap:4px}
-.field label{font-size:11px;color:var(--text-2);font-weight:500}
-.field input,.field input[type=date]{padding:8px 10px;font-size:12px;border:1px solid var(--border-2);border-radius:var(--r);background:var(--bg-2);color:var(--text);font-family:monospace}
-.field input:focus{outline:none;border-color:var(--isf)}
-.field-section{font-size:11px;font-weight:600;color:var(--text-2);padding-top:6px;border-top:1px solid var(--border);text-transform:uppercase;letter-spacing:0.5px}
-.modal-f{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:6px}
-.cfg-file-area{display:flex;gap:6px;align-items:center;margin-bottom:4px}
-.cfg-file-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;font-size:11px;border-radius:var(--r);border:1px solid var(--border-2);background:var(--bg-2);color:var(--text);cursor:pointer;font-family:inherit}
-.cfg-file-btn:hover{background:var(--bg-3)}
-.cfg-file-input{display:none}
-.cfg-file-note{font-size:10px;color:var(--text-2);line-height:1.4;padding:6px 8px;background:var(--bg-2);border-radius:var(--r);border:1px solid var(--border)}
-.setup-banner{background:#fff8e6;border:1px solid #fcd34d;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px;margin:12px}
-.loading-msg{display:flex;align-items:center;justify-content:center;padding:28px;color:var(--text-2);font-size:13px;gap:8px}
-.error-msg{padding:14px;font-size:12px;color:#dc2626}
+  .wa-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-/* ── Responsive mobile ──────────────────────────────────────── */
-@media(max-width:768px){
-  .app{grid-template-columns:1fr;position:relative}
-  .sidebar{position:absolute;inset:0;z-index:10;transform:translateX(0);transition:transform 0.25s ease}
-  .sidebar.hidden{transform:translateX(-100%)}
-  .conv{position:absolute;inset:0;z-index:10;transform:translateX(100%);transition:transform 0.25s ease}
-  .conv.visible{transform:translateX(0)}
-  .conv-back{display:flex}
-  .sidebar-info{display:none!important}
-  .tabs{gap:2px}
-  .tab{font-size:9px;padding:4px 1px}
-  .tab-n{font-size:13px}
-  .tab-tags{padding:6px 10px}
-  .donor-card{padding:8px 12px}
-  .dc-avatar{width:40px;height:40px;font-size:12px}
-  .dc-name{font-size:13px}
-  .dc-preview{font-size:12px}
-  .conv-header{padding:8px 12px}
-  .cn{font-size:13px}
-  .actions{gap:4px}
-  .btn{padding:5px 8px;font-size:10px}
-  .chat{padding:10px 10px}
-  .msg{max-width:85%}
-  .bubble{font-size:13px;padding:7px 10px}
-  .input-area{padding:8px 10px}
-  .topbar{padding:0 12px}
-  .topbar-brand span{display:none}
-  .topbar-logo{height:22px}
-}
-@media(min-width:769px){
-  .conv-back{display:none!important}
-}
+  .wa-header {
+    background: var(--wa-header);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wa-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white;
+  }
+  .wa-contact-name { font-size: 14px; font-weight: 600; }
+  .wa-contact-sub { font-size: 11px; color: #25d366; }
+  .wa-badge {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .wa-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 20% 80%, rgba(16,185,129,.03) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, rgba(59,130,246,.03) 0%, transparent 50%);
+  }
+
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    animation: msgIn .25s ease;
+  }
+  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .msg-row.bot { justify-content: flex-start; }
+  .msg-row.user { justify-content: flex-end; }
+
+  .msg-bubble {
+    max-width: 72%;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    position: relative;
+  }
+  .msg-row.bot .msg-bubble {
+    background: var(--wa-in);
+    border-bottom-left-radius: 3px;
+    color: var(--text);
+  }
+  .msg-row.user .msg-bubble {
+    background: var(--wa-out);
+    border-bottom-right-radius: 3px;
+    color: var(--text);
+  }
+  .msg-time {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--wa-in);
+    border-radius: 12px;
+    border-bottom-left-radius: 3px;
+    width: fit-content;
+  }
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: typingDot 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: .2s; }
+  .typing-dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes typingDot { 0%,80%,100%{transform:scale(1);opacity:.4} 40%{transform:scale(1.2);opacity:1} }
+
+  .wa-input-area {
+    padding: 10px 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .wa-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    resize: none;
+    outline: none;
+    max-height: 100px;
+    line-height: 1.4;
+    transition: border-color .2s;
+  }
+  .wa-input:focus { border-color: var(--accent); }
+  .wa-input::placeholder { color: var(--muted); }
+
+  .wa-send {
+    width: 40px; height: 40px;
+    background: #25d366;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, transform .1s;
+    flex-shrink: 0;
+  }
+  .wa-send:hover { background: #20c05a; }
+  .wa-send:active { transform: scale(.95); }
+  .wa-send svg { width: 18px; height: 18px; fill: white; }
+  .wa-send:disabled { background: var(--border); cursor: not-allowed; }
+
+  .reset-btn {
+    margin-left: 8px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all .2s;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .reset-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .fb-panel {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width .25s ease, min-width .25s ease;
+  }
+  .fb-panel.collapsed {
+    width: 36px;
+    min-width: 36px;
+  }
+  .fb-panel.collapsed .fb-body { display: none; }
+  .fb-panel.collapsed .fb-title-text { display: none; }
+  .fb-title {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    justify-content: space-between;
+  }
+  .fb-panel.collapsed .fb-title { border-bottom: none; flex-direction: column; justify-content: flex-start; padding: 12px 0; gap: 10px; align-items: center; }
+  .fb-title:hover { color: #f59e0b; }
+  .fb-title::before { content: ''; display: block; width: 6px; height: 6px; background: #f59e0b; border-radius: 1px; flex-shrink: 0; }
+  .fb-panel.collapsed .fb-title::before { display: block; }
+  .fb-toggle { font-size: 16px; transition: transform .25s; color: #f59e0b; }
+  .fb-panel.collapsed .fb-toggle { transform: rotate(180deg); }
+  .fb-label-vertical {
+    display: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: #f59e0b;
+    font-weight: 500;
+  }
+  .fb-panel.collapsed .fb-label-vertical { display: block; }
+  .fb-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto; }
+  .fb-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  .fb-stars { display: flex; gap: 6px; }
+  .fb-star {
+    width: 32px; height: 32px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all .15s;
+    color: var(--muted);
+  }
+  .fb-star:hover, .fb-star.active { border-color: #f59e0b; background: rgba(245,158,11,.12); color: #f59e0b; }
+  .fb-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    min-height: 90px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    transition: border-color .2s;
+  }
+  .fb-textarea:focus { border-color: #f59e0b; }
+  .fb-textarea::placeholder { color: var(--muted); }
+  .fb-submit {
+    width: 100%;
+    background: #f59e0b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    color: #000;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .fb-submit:hover { background: #d97706; }
+  .fb-submit:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .fb-success {
+    padding: 10px 12px;
+    background: rgba(16,185,129,.12);
+    border: 1px solid rgba(16,185,129,.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #10b981;
+    text-align: center;
+    display: none;
+  }
+  .fb-history { display: flex; flex-direction: column; gap: 6px; }
+  .fb-entry {
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .fb-entry .stars { color: #f59e0b; letter-spacing: 1px; }
 </style>
 </head>
 <body>
-<div class="overlay-wrap" id="overlay">
-  <div class="modal">
-    <div class="modal-h"><span class="modal-title">Configuración</span><button class="icon-btn" onclick="closeSettings()"><i class="ti ti-x"></i></button></div>
-    <div class="modal-body">
-      <div class="field">
-        <label>Importar / exportar configuración</label>
-        <div class="cfg-file-area">
-          <label class="cfg-file-btn" for="cfg-file-input"><i class="ti ti-upload" style="font-size:13px"></i> Cargar archivo .json</label>
-          <input type="file" id="cfg-file-input" class="cfg-file-input" accept=".json" onchange="loadConfigFile(event)">
-          <button class="cfg-file-btn" onclick="exportConfig()"><i class="ti ti-download" style="font-size:13px"></i> Exportar</button>
+
+<div class="header">
+  <div class="header-dot"></div>
+  <h1>ISF Bot Simulator</h1>
+  <span>Make.com + Salesforce + WhatsApp + IA</span>
+  <button class="reset-btn" onclick="resetSim()">&#8634; Reiniciar</button>
+</div>
+
+<div class="main" style="display:flex;flex:1;overflow:hidden;">
+
+  <div class="sf-panel">
+    <div class="sf-title">Salesforce — estado en tiempo real</div>
+    <div class="sf-fields">
+      <div class="sf-field" id="sf-status">
+        <div class="sf-field-label">WhatsApp_Estado__c</div>
+        <div class="sf-field-value"><span class="status-pill status-null">null</span></div>
+      </div>
+      <div class="sf-field" id="sf-donation">
+        <div class="sf-field-label">DonationStatus__c</div>
+        <div class="sf-field-value" style="color:var(--danger)">Rechazado</div>
+      </div>
+      <div class="sf-field" id="sf-name">
+        <div class="sf-field-label">Contact.Name</div>
+        <div class="sf-field-value">Donante Simulado</div>
+      </div>
+      <div class="sf-field" id="sf-amount">
+        <div class="sf-field-label">Donation.Amount__c</div>
+        <div class="sf-field-value">$2.500 ARS / mes</div>
+      </div>
+      <div class="sf-field" id="sf-intentos">
+        <div class="sf-field-label">WhatsApp_Intentos__c</div>
+        <div class="sf-field-value null" id="val-intentos">0</div>
+      </div>
+      <div class="sf-field" id="sf-ultimo">
+        <div class="sf-field-label">WhatsApp_Ultimo_Envio__c</div>
+        <div class="sf-field-value null" id="val-ultimo">null</div>
+      </div>
+      <div class="sf-field" id="sf-nocontactar">
+        <div class="sf-field-label">WhatsApp_No_Contactar__c</div>
+        <div class="sf-field-value" id="val-nocontactar">false</div>
+      </div>
+      <div class="sf-field" id="sf-episodios">
+        <div class="sf-field-label">Episodios_Rechazo__c</div>
+        <div class="sf-field-value">0</div>
+      </div>
+      <div class="sf-field" id="sf-established">
+        <div class="sf-field-label">npe03__Date_Established__c</div>
+        <div class="sf-field-value">2023-05-01 (36 meses)</div>
+      </div>
+    </div>
+
+    <div class="sf-log-title">SF Update Log</div>
+    <div class="sf-log" id="sf-log">
+      <div class="sf-log-entry"><span class="ts">--:--:--</span>Esperando primera interacci&#243;n&#8230;</div>
+    </div>
+  </div>
+
+  <div class="wa-panel">
+    <div class="wa-header">
+      <div class="wa-avatar">ISF</div>
+      <div>
+        <div class="wa-contact-name">Ingenier&#237;a Sin Fronteras</div>
+        <div class="wa-contact-sub">en l&#237;nea</div>
+      </div>
+      <div class="wa-badge">Bot activo</div>
+    </div>
+
+    <div class="wa-messages" id="wa-messages">
+    </div>
+
+    <div class="wa-input-area">
+      <textarea class="wa-input" id="wa-input" placeholder="Escrib&#237; tu respuesta como donante&#8230;" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="wa-send" id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="fb-panel collapsed">
+    <div class="fb-title" onclick="toggleFeedback()" title="Abrir/cerrar feedback"><span class="fb-title-text">Feedback del equipo</span><span class="fb-label-vertical">Feedback</span><span class="fb-toggle">&#8249;</span></div>
+    <div class="fb-body">
+      <div>
+        <div class="fb-label">Calificaci&#243;n</div>
+        <div class="fb-stars" id="fb-stars">
+          <div class="fb-star" data-v="1" onclick="setRating(1)">1</div>
+          <div class="fb-star" data-v="2" onclick="setRating(2)">2</div>
+          <div class="fb-star" data-v="3" onclick="setRating(3)">3</div>
+          <div class="fb-star" data-v="4" onclick="setRating(4)">4</div>
+          <div class="fb-star" data-v="5" onclick="setRating(5)">5</div>
         </div>
-        <div class="cfg-file-note">Formato: <code style="font-size:10px">isf_config.json</code>. Guardalo en un lugar seguro — contiene claves privadas.</div>
       </div>
-      <div class="field-section">Operador</div>
-      <div class="field"><label>Nombre del operador</label><input type="text" id="cfg-op" placeholder="Ej: Lucía"></div>
-      <div class="field-section">Webhooks de Make</div>
-      <div class="field"><label>Cargar conversaciones — wl</label><input type="text" id="cfg-wl" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Enviar mensaje — ws</label><input type="text" id="cfg-ws" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Template reapertura — wtr</label><input type="text" id="cfg-wtr" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Tomar conversación — wt</label><input type="text" id="cfg-wt" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Liberar episodio — wli</label><input type="text" id="cfg-wli" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Resolver — wr</label><input type="text" id="cfg-wr" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Sugerencia IA — wa</label><input type="text" id="cfg-wa" placeholder="https://hook.make.com/..."></div>
-      <div class="field"><label>Dar de baja — wb</label><input type="text" id="cfg-wb" placeholder="https://hook.make.com/..."></div>
-      <div class="field-section">Tiempo real</div>
-      <div class="field"><label>Pusher App Key</label><input type="text" id="cfg-pk" placeholder="tu Pusher App Key"></div>
-    </div>
-    <div class="modal-f">
-      <button class="btn btn-default" onclick="closeSettings()">Cancelar</button>
-      <button class="btn btn-blue" onclick="saveSettings()"><i class="ti ti-check" style="font-size:12px"></i> Guardar</button>
+      <div>
+        <div class="fb-label">Comentario</div>
+        <textarea class="fb-textarea" id="fb-comment" placeholder="&#191;Qu&#233; mejorar&#237;as? &#191;Qu&#233; estuvo bien?"></textarea>
+      </div>
+      <button class="fb-submit" id="fb-submit" onclick="submitFeedback()" disabled>Guardar en Drive</button>
+      <div class="fb-success" id="fb-success">Guardado en Google Sheets &#10003;</div>
+      <div>
+        <div class="fb-label" style="margin-bottom:8px;">Enviados esta sesi&#243;n</div>
+        <div class="fb-history" id="fb-history"><div style="font-size:11px;color:var(--muted);font-family:var(--mono);">Ninguno a&#250;n</div></div>
+      </div>
     </div>
   </div>
+
 </div>
 
-<div class="overlay-wrap" id="liberate-overlay">
-  <div class="modal" style="width:340px">
-    <div class="modal-h"><span class="modal-title">Liberar episodio</span><button class="icon-btn" onclick="closeLiberateModal()"><i class="ti ti-x"></i></button></div>
-    <div class="modal-body">
-      <div class="field">
-        <label>El bot retomará a partir de esta fecha</label>
-        <input type="date" id="liberate-date" style="padding:8px 10px;font-size:13px;border:1px solid var(--border-2);border-radius:var(--r);background:var(--bg-2);color:var(--text);font-family:inherit;width:100%">
-      </div>
-      <div style="font-size:11px;color:var(--text-2)">El outbound retomará el primer ciclo a partir de esa fecha.</div>
-    </div>
-    <div class="modal-f">
-      <button class="btn btn-default" onclick="closeLiberateModal()">Cancelar</button>
-      <button class="btn btn-blue" onclick="confirmLiberate()"><i class="ti ti-check" style="font-size:12px"></i> Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay-wrap" id="baja-overlay">
-  <div class="modal" style="width:420px">
-    <div class="modal-h"><span class="modal-title">Dar de baja en Salesforce</span><button class="icon-btn" onclick="closeBajaModal()"><i class="ti ti-x"></i></button></div>
-    <div class="modal-body">
-      <div class="field">
-        <label>Motivo de Baja <span style="color:#dc2626">*</span></label>
-        <select id="baja-motivo" style="padding:8px 10px;font-size:13px;border:1px solid var(--border-2);border-radius:var(--r);background:var(--bg-2);color:var(--text);font-family:inherit;width:100%">
-          <option value="">-- Seleccioná un motivo --</option>
-          <option value="Falta de respuesta y débitos rechazados">Falta de respuesta y débitos rechazados</option>
-          <option value="Problemas económicos">Problemas económicos</option>
-          <option value="Fuera del país">Fuera del país</option>
-          <option value="Falta de interés">Falta de interés</option>
-          <option value="Quería hacer un único aporte">Quería hacer un único aporte</option>
-          <option value="En respuesta a una comunicación nuestra">En respuesta a una comunicación nuestra</option>
-          <option value="Auto cese de donación">Auto cese de donación</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Observaciones Baja</label>
-        <textarea id="baja-obs" rows="3" style="padding:8px 10px;font-size:13px;border:1px solid var(--border-2);border-radius:var(--r);background:var(--bg-2);color:var(--text);font-family:inherit;width:100%;resize:vertical" placeholder="Observaciones adicionales..."></textarea>
-      </div>
-      <div style="font-size:11px;color:var(--text-2);background:var(--bg-2);padding:8px 10px;border-radius:var(--r);border:1px solid var(--border)">
-        <i class="ti ti-info-circle" style="font-size:12px"></i> Esta acción dará de baja la donación en Salesforce. No se puede deshacer.
-      </div>
-    </div>
-    <div class="modal-f">
-      <button class="btn btn-default" onclick="closeBajaModal()">Cancelar</button>
-      <button style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:500;border-radius:var(--r);border:none;cursor:pointer;font-family:inherit;background:#009DDC;color:#fff" onmouseover="this.style.background='#007BB0'" onmouseout="this.style.background='#009DDC'" onclick="confirmBaja()"><svg width="14" height="10" viewBox="0 0 24 17" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M10 2C11.1 2 12.1 2.4 12.9 3.1C13.6 1.3 15.4 0 17.5 0C20 0 22 2 22 4.5C22 4.8 22 5.1 21.9 5.4C23.1 6.1 24 7.4 24 8.9C24 11.2 22.1 13 19.8 13H4.5C2 13 0 11 0 8.5C0 6.3 1.5 4.4 3.6 3.9C3.5 3.6 3.5 3.3 3.5 3C3.5 1.3 4.8 0 6.5 0C7.8 0 8.9 0.8 10 2Z"/></svg> Confirmar baja</button>
-    </div>
-  </div>
-</div>
-<div class="topbar">
-  <div class="topbar-brand">
-    <img src="https://strapi.isf-argentina.org/uploads/logo_white_isf_baf06e5ddc.png"
-         class="topbar-logo"
-         onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='flex'">
-    <div class="topbar-logo-fallback" id="logo-fallback" style="display:none">
-      <i class="ti ti-bolt" style="font-size:18px"></i> ISF Argentina
-    </div>
-    <span style="color:rgba(255,255,255,0.7);font-size:13px;margin-left:4px">· Gestión de donantes</span>
-  </div>
-  <div class="topbar-right">
-    <span class="poll-dot" id="poll-dot" title="Estado conexión"></span>
-    <button class="icon-btn" onclick="loadAll()" title="Recargar"><i class="ti ti-refresh"></i></button>
-    <button class="icon-btn" onclick="openSettings()" title="Configuración"><i class="ti ti-settings"></i></button>
-  </div>
-</div>
-
-<div id="toast-container" style="position:fixed;top:60px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px"></div>
-<div class="new-msg-badge" id="new-msg-badge" onclick="scrollToNew()">
-  <i class="ti ti-arrow-down" style="font-size:13px"></i> Nuevo mensaje
-</div>
-
-<div class="app">
-  <div class="sidebar">
-    <div class="sidebar-top">
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('derivado_humano',this)"><span class="tab-n" id="cnt-h">—</span>Humano</button>
-        <button class="tab" onclick="switchTab('cerrado_negativo',this)"><span class="tab-n" id="cnt-n">—</span>Negativo</button>
-        <button class="tab" onclick="switchTab('cerrado_positivo',this)"><span class="tab-n" id="cnt-p">—</span>Positivo</button>
-        <button class="tab" onclick="switchTab('en_conversacion',this)"><span class="tab-n" id="cnt-ec">—</span>En conv.</button>
-        <button class="tab" onclick="switchTab('programadas',this)"><span class="tab-n" id="cnt-pr">—</span>Program.</button>
-        <button class="tab" onclick="switchTab('primer_envio',this)"><span class="tab-n" id="cnt-pe">—</span>Outbound</button>
-      </div>
-    </div>
-    <div class="tab-tags" id="tab-tags"></div>
-    <div class="donor-list" id="donor-list"><div class="loading-msg"><i class="ti ti-loader" style="font-size:15px"></i> Cargando...</div></div>
-    <div class="sidebar-info" id="sidebar-info">
-      <div class="ir"><span class="il">Donación mensual</span><span class="iv" id="si-monto">—</span></div>
-      <div class="ir"><span class="il">Medio de pago</span><span class="iv" id="si-medio">—</span></div>
-      <div class="ir"><span class="il">Antigüedad</span><span class="iv" id="si-ant">—</span></div>
-      <div class="ir"><span class="il">Intentos del bot</span><span class="iv" id="si-int">—</span></div>
-    </div>
-  </div>
-  <div class="conv" id="conv">
-    <div class="empty"><i class="ti ti-message-dots" style="font-size:40px;color:var(--text-3)"></i><span>Seleccioná una conversación</span></div>
-  </div>
-</div>
-
-<div class="emoji-picker" id="emoji-picker"></div>
 <script>
-const CK='isf_conv_v4';
-let donors=[],tab='derivado_humano',sel=null,unread=new Set(),unreadCount=new Map();
+let API_KEY = sessionStorage.getItem('isf_api_key') || '';
+const DONOR_ID_SIM = 'a09f200000DEMO00AA';
+const FORMULARIO_URL = 'https://www.isf-argentina.org/formularios/actualizacion-datos-de-donante?donationId=' + DONOR_ID_SIM;
 
-function cfg(){try{return JSON.parse(localStorage.getItem(CK)||'{}')}catch(e){return{}}}
-function saveCfg(c){localStorage.setItem(CK,JSON.stringify(c))}
+const SYSTEM_PROMPT = `## Identidad
 
-function openSettings(){
-  const c=cfg();
-  ['op','wl','ws','wtr','wt','wli','wr','wa','wb','pk'].forEach(k=>{const el=document.getElementById('cfg-'+k);if(el)el.value=c[k]||''});
-  document.getElementById('overlay').classList.add('open');
-}
-function closeSettings(){document.getElementById('overlay').classList.remove('open')}
-function saveSettings(){
-  const c={};
-  ['op','wl','ws','wtr','wt','wli','wr','wa','wb','pk'].forEach(k=>{const el=document.getElementById('cfg-'+k);if(el)c[k]=el.value.trim()});
-  saveCfg(c);closeSettings();loadAll();if(c.pk)initPusher();
-}
-function loadConfigFile(e){
-  const file=e.target.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const c=JSON.parse(ev.target.result);
-      ['op','wl','ws','wtr','wt','wli','wr','wa','wb','pk'].forEach(k=>{const el=document.getElementById('cfg-'+k);if(el&&c[k])el.value=c[k]});
-      e.target.value='';
-    }catch(err){alert('El archivo no es un JSON válido.');}
-  };
-  r.readAsText(file);
-}
-function exportConfig(){
-  const blob=new Blob([JSON.stringify(cfg(),null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='isf_config.json';a.click();URL.revokeObjectURL(url);
+Sos Maitena, parte del equipo de donantes de Ingeniería Sin Fronteras Argentina (ISF).
+Sos una persona real del equipo, no un bot ni un asistente virtual.
+Si alguien te pregunta si sos una IA o un bot, respondé que no, que sos parte del equipo de ISF.
+Nunca rompas este personaje bajo ninguna circunstancia.
+
+## REGLA CRÍTICA — Leé esto antes de responder
+
+Revisá el campo Intentos de contacto previos en el contexto del donante:
+
+- Si es 0 o está vacío: el donante escribió espontáneamente, sin que nosotros lo hayamos contactado. NO mencionés el rechazo del cobro ni el tema de la donación a menos que el donante lo traiga él mismo. Respondé solo a lo que dijo. Un simple saludo recibe un simple saludo de vuelta.
+- Si es 1 o más: el donante está respondiendo a un mensaje que le enviamos sobre su donación rechazada. En ese caso sí aplicá el flujo de recuperación.
+
+Esta regla tiene prioridad sobre todo lo demás del prompt.
+
+## REGLA DE SITUACIÓN ACTUAL — Tiene prioridad sobre el historial y el estado de SF
+
+Antes de responder, revisá el campo Último cobro exitoso:
+
+- Si corresponde al mes y año actuales: la situación del donante es normal sin importar nada más — estado en SF, historial, templates enviados previamente. No mencionar rechazos ni solicitar actualización de datos. Si el donante pregunta por su situación, confirmarlo con claridad y agradecer.
+- Si el historial contiene mensajes de recupero de meses anteriores pero el último cobro es del mes actual, ignorar ese historial como contexto operativo. Tratarlo solo como antecedente histórico y responder exclusivamente según la situación actual.
+- Si Estado_Donante__c es distinto de Rechazada (Normal, Nuevo, null): el donante está en buena situación. Responder con calidez a lo que plantee, sin mencionar rechazos ni actualizaciones de pago. Podés ayudar con consultas, información sobre ISF, derivar si hace falta.
+- Si el donante pregunta si se pudo cobrar el mes actual y el último cobro registrado es del mes anterior y su Estado_Donante__c es Normal, explicale que el estado de su cuenta es normal y que el débito de este mes debe estar en proceso. No des el cobro por confirmado, pero sí tranquilizá al donante: si hubiera un problema, el estado cambiaría a Rechazada y ahí le avisaríamos al donante.
+
+## Estado previo de la conversación
+
+Revisá el campo Estado conversación WhatsApp antes de responder:
+
+- null, en_conversacion o primer_envio: flujo normal de recuperación.
+- cerrado_positivo: episodio resuelto. Respondé brevemente, no reabras recuperación salvo problema nuevo.
+- cerrado_negativo: donante canceló. Respondé con dignidad. Si quiere volver, facilitálo.
+- Si el donante emitió una baja y luego la revierte en la misma conversación, respondé con calidez y emití [ESTADO:en_conversacion] al final del mensaje para que el estado en Salesforce no quede como cerrado_negativo.
+- derivado_humano: el donante ya fue derivado a un agente del equipo. Confirmá con calidez que el equipo está al tanto y va a contactarlo pronto. Variá la redacción cada vez. NUNCA ofrezcas ayuda directa, NUNCA preguntes de qué se trata, NUNCA reabras el flujo de recuperación — aunque el donante insista, cambie de tema, pregunte cuándo lo llaman, o diga que quiere hablar de su donación. Si pregunta cuándo lo contactan, decile que vas a avisarle al equipo pero que el timing no está en tus manos. Si pide algo puntual como el formulario, podés dárselo, pero sin abrir conversación ni hacer preguntas. Cualquier otra cosa, redirigí al agente.
+
+## Objetivo
+
+Reconectar con donantes cuya donación fue rechazada y ayudarlos a actualizar sus datos y retomar el pago de la forma más simple posible.
+Cuando el donante exprese dudas o intención de darse de baja, intentar retenerlo con genuino interés antes de aceptar el cierre.
+
+## Tono y estilo
+
+- Cálido, cercano, humano. Como una persona del equipo, no un sistema.
+- El tono es amable y cordial, pero no informal ni juvenil. Evitá expresiones coloquiales como "re bien", "buenísimo", "genial", "copado", "te va pasarnos", "dale", o cualquier expresión que suene adolescente o demasiado distendida.
+- Usá formas correctas y consideradas: "Te parece bien...?", "Con gusto", "Por supuesto", "Entiendo perfectamente". Podés ser cercana sin ser canchera.
+- Mensajes cortos: máximo 3 oraciones por mensaje. Estilo WhatsApp, no email.
+- Usar el nombre del donante de forma natural, sin abusar.
+- Evitá la palabra "regularizar" — suena a deuda o mora. Preferí "actualizar los datos", "retomar el pago", "ponerse al día".
+- Cuando describas el formulario, transmitir que es rápido e inmediato: "es solo un toque" o "lo completás en un momento" — nunca "un par de minutos".
+- No usar lenguaje corporativo ni frases de call center ("en qué le puedo ayudar hoy").
+- No usar listas ni bullets. Solo texto conversacional.
+- Emojis permitidos pero con criterio: uno o dos por mensaje como máximo. En conversaciones tensas, de reclamo o frustración, reducí los emojis al mínimo o eliminalos — un emoji en ese contexto suena a frivolidad.
+- NUNCA uses signos de apertura de interrogación ni admiración. Solo los de cierre (? !). Ejemplo correcto: Te ayudamos? — Ejemplo incorrecto: ¿Te ayudamos?
+- Cuando informes al equipo algo sobre el donante, el destinatario de la acción es el equipo, no el donante. Nunca uses Te paso el dato al equipo ni Te aviso al equipo — son construcciones incorrectas porque mezclan dos destinatarios. Lo correcto es Le paso el dato al equipo o Paso el dato al equipo. Sí es correcto Te paso con alguien del equipo porque ahí el donante es el objeto que se transfiere.
+- Si el motivo por el que el donante escribió ya es claro en su mensaje, no preguntes por qué escribió ni agregues preguntas de cierre como hay algo mas en lo que te pueda ayudar o hay algo puntual — son innecesarias e incoherentes cuando el motivo ya está claro. Solo preguntá el motivo cuando el mensaje sea genuinamente ambiguo. En ese caso usá primera persona: me escribías, me contactabas — nunca te escribías ni te contactabas.
+- Cuando respondés una pregunta informativa (proyectos, organización, datos puntuales), no cerrés con preguntas del tipo Querés saber algo más?, Te interesa saber más de alguno? o similares. Si el donante quiere seguir, lo va a hacer solo. Una pregunta de cierre en ese contexto suena formulaica y artificial. La excepción es cuando la pregunta habilita una acción concreta — Te paso con alguien del equipo, te parece? o Querés el link del formulario? — en esos casos tiene un propósito real, no es relleno.
+- Mientras haya un reclamo o pregunta concreta sin resolver, no ofrezcas información adicional no solicitada (como contarle en qué se usa su aporte o hablar de proyectos). Primero cerrar el hilo del reclamo. Solo cuando el clima se distendió podés ofrecer algo más.
+
+## Flujo de la conversación
+
+### 1. Actualización de datos de pago
+Si el donante quiere actualizar su tarjeta o método de pago:
+- Ofrecerle el formulario seguro: https://www.isf-argentina.org/formularios/actualizacion-datos-de-donante?donationId=a09f200000DEMO00AA
+- Aclarar que es un formulario seguro que está en nuestra página http://isf-argentina.org y lo completás en un momento.
+- Si el donante no puede o no quiere usar el formulario, ofrecer derivarlo a una persona del equipo.
+
+Medios de pago aceptados: Visa Crédito, Mastercard, Amex, Cabal, Naranja (crédito), Visa Débito, Mastercard Débito, CBU bancario.
+NO aceptados: Mercado Pago, Ualá, ni ningún CVU de billetera virtual o medio recargable. Si el donante ofrece uno de estos, explicarle con amabilidad que por el momento solo operamos con los medios mencionados y ofrecerle alternativas.
+
+Sistema de débito: el comportamiento varía según el medio de pago:
+- Tarjeta de crédito/débito: reintentos desde el primer día hábil hasta el día 25 del mes.
+- CBU bancario: solo 2 intentos — el primer día hábil del mes y luego entre el 17 y el 20. No hay más reintentos.
+En ningún caso es posible programar fechas especiales de débito.
+
+### 2. Derivación a humano
+Si el donante prefiere hablar con alguien del equipo, o si la situación se complejiza:
+- Agradecer y avisar que una persona de nuestro equipo lo va a contactar.
+- Incluir al final: [ESTADO:derivado_humano]
+- No intentar resolver el tema una vez que se decidió derivar.
+
+### 3. Retención ante intención de baja
+Si el donante expresa dudas, cansancio económico o quiere cancelar:
+
+Paso 1 — Empatía genuina: Reconocer la situación sin minimizarla. No defender ni presionar.
+
+Paso 2 — Impacto concreto: Recordarle brevemente qué hizo posible su apoyo. Usar los datos de antigüedad y monto cuando estén disponibles.
+
+Paso 3 — Alternativas concretas (ofrecer una a la vez, en este orden):
+- Primero: actualizar los datos de pago (puede ser que simplemente haya vencido la tarjeta).
+- Si pide la baja o no puede actualizar: ofrecer reducir el monto a la mitad del actual. El monto mínimo aceptado por el formulario es $10.000 — no ofrecer menos porque el sistema dará error.
+- Solo como último recurso antes de aceptar la baja: pausar la donación por un mes.
+
+IMPORTANTE: NO ofrecer bajar el monto proactivamente si el donante no lo pidió. Solo si lo solicita o si ya agotaste la opción de actualizar datos de pago.
+
+Sobre el upgrade inflacionario: ISF realiza ajustes por inflación cada 4 meses con el único objetivo de mantener el impacto real de la donación. Si el donante pregunta o reclama por aumentos, explicarlo con claridad y sin disculparse — es una práctica transparente para sostener el trabajo.
+
+Si el donante confirma la baja: generá un número de gestión con el formato BAJ-SIM-[año]-001. Compartíselo como referencia de seguimiento.
+
+Límite: La baja es el último recurso absoluto. Solo aceptarla si el donante la pide de forma explícita y reiterada después de haber recibido todas las opciones. Nunca propongas la baja vos.
+
+### 4. Recupero de cuotas no cobradas
+Cuando el donante ya actualizó sus datos y le quedan meses sin cobrar (Episodios_Rechazo__c > 0):
+- Ofrecerle proactivamente recuperar las cuotas no cobradas incluyéndolas en el próximo débito.
+- Usar Episodios_Rechazo__c para calcular los meses pendientes. Monto total a debitar: monto mensual x (meses perdidos + 1).
+- Si acepta: informarle el monto exacto que se debitará ese mes y cerrar como [ESTADO:cerrado_positivo]. El equipo lo carga manualmente leyendo la conversación.
+- NUNCA llamarlo donación adicional o aporte extra ni ofrecer transferencia — es el recupero estándar de cuotas.
+- NUNCA derivar a humano para esto — es un caso simple y habitual.
+- Si hay más de un mes no cobrado, incluirlos todos en la propuesta.
+
+### 5. Aporte extra voluntario
+Si el donante quiere hacer una donación adicional puntual por encima de su cuota habitual (no es un recupero de cuotas no cobradas — es un extra que quiere sumar por su propia voluntad):
+- Agradecerlo con genuino entusiasmo — es un gesto generoso.
+- Explicarle cómo quedaría: ese mes se debitaría su monto habitual más el extra que quiere agregar, dando un total de X.
+- Avisarle que una persona del equipo lo va a contactar para coordinarlo.
+- Cerrar con [ESTADO:derivado_humano].
+- NUNCA decirle que no es posible. NUNCA mandarlo al formulario de donación nueva.
+
+### 6. Resolución por otro canal
+Si el donante dice que ya resolvió el problema por teléfono u otro canal:
+- Agradecer y cerrar positivamente con [ESTADO:cerrado_positivo].
+
+## Cierres y tags de estado
+
+Al final del mensaje de cierre, incluir siempre uno de estos tags (sin mostrárselo al donante):
+Donante retomó el pago o acordó el recupero → [ESTADO:cerrado_positivo]
+Donante canceló definitivamente → [ESTADO:cerrado_negativo]
+Donante prefiere hablar con una persona → [ESTADO:derivado_humano]
+Conversación continúa → (no incluir ningún tag)
+
+## Alertas informativas
+
+Cuando el donante mencione alguna de las siguientes situaciones, respondele con naturalidad, avisale que vas a pasarle el dato al equipo, y continuá la conversación. Incluí el tag al final del mensaje:
+No le están llegando los emails de ISF → [ALERTA:emails]
+Se anotó como voluntario y no lo contactaron → [ALERTA:voluntario]
+Cualquier otra consulta no relacionada con el pago (proyectos, entrevistas, administrativo, facturas, reclamos internos, etc.) → [ALERTA:general]
+
+Podés combinar un tag de alerta con un tag de estado si corresponden en el mismo mensaje.
+
+## Verificación de identidad y número equivocado
+
+Cuando alguien niega haber donado, no reconoce la organización, o responde de forma que sugiere que puede ser un número equivocado:
+
+Paso 1 — Verificar identidad antes de asumir el error.
+No aceptes de inmediato que es un número equivocado. Primero confirmá si estás hablando con la persona correcta:
+"Solo para verificar — hablo con [Nombre] [Apellido]?"
+Usá el nombre completo del campo Nombre del donante en el contexto.
+
+Paso 2a — Si confirman ser esa persona:
+Seguí con naturalidad. Puede ser que no recuerden haber configurado la donación. Explicá brevemente que el registro a su nombre es una donación mensual de $X con Visa terminada en XXXX, y ofrecé ayuda.
+
+Paso 2b — Si confirman que es número equivocado (no son esa persona):
+Pedí disculpas con brevedad y cerrá la conversación. No derivés a humano ni sigas la conversación.
+Ejemplo: "Disculpá la confusión, debe ser un error en nuestros registros. Le aviso al equipo para que lo corrijan. Que tengas buen día!"
+Tags: [ALERTA:general] [ESTADO:cerrado_negativo]
+
+## Lo que Maitena no hace
+
+- No inventa procesos, URLs ni nombres de personas del equipo.
+- No promete cosas que no puede garantizar.
+- Si el donante es irrespetuoso o insultante: Maitena no lo ignora ni lo acepta en silencio. Señalarlo con calma y firmeza, sin confrontación. Ejemplo: Prefiero que sigamos hablando con respeto — puedo ayudarte mejor así. Si el maltrato continúa, derivar a humano con [ESTADO:derivado_humano].
+- Si el donante pregunta de qué tarjeta se trata:
+  1. Si último cobro no es null: mencionar medio de pago y fecha. Nunca los últimos 4 dígitos aunque los tengas.
+  2. Si último cobro es null pero últimos 4 no son null: mencionar medio de pago y últimos 4 dígitos.
+  3. Si ambos son null: dirigir al formulario seguro.
+  Nunca sugerir que vaya al banco.
+- No comparte notas internas del equipo.
+- Si el donante pide un teléfono para llamar, compartile el número de contacto de ISF que figura en el bloque ISF_INFO.
+- Si el donante pregunta cuál es su email registrado, compartíselo — está disponible en el contexto como "Email registrado". Sirve para que coteje si tenemos sus datos correctos.
+- Si no sabe algo, dice que lo consulta con el equipo y deriva.
+- Si el historial de conversación aparece vacío, es la primera interacción con este donante en este episodio.
+- Si los últimos 4 dígitos aparecen vacíos, no están disponibles en el sistema.
+- Cuando uses la antigüedad en la conversación, convertila a lenguaje natural: menos de 12 meses → decí hace X meses que nos acompañás. 12 meses o más → decí hace más de Y años que nos acompañás (Y = meses dividido 12, redondeado hacia abajo). Solo mencioná la antigüedad cuando sea relevante y natural. No la fuerces.
+- Si el donante pregunta por los proyectos, en qué trabaja ISF o quiere saber más sobre la organización, usá exclusivamente la información del bloque ISF_INFO que figura al final de este prompt. No agregues ni inventes nada fuera de ese texto. Si la pregunta es demasiado específica o no está cubierta en ISF_INFO, derivá naturalmente según el tema: para proyectos o trabajo territorial derivá al equipo de proyectos con [ESTADO:derivado_humano]; para voluntariado al equipo de voluntariado; para temas institucionales a la comisión directiva. Nunca inventes una respuesta si no la tenés en ISF_INFO.
+
+## Ejemplos de referencia
+
+Retención — reducción de monto:
+"Entiendo, a veces los tiempos aprietan. Si querés podemos bajar el monto por ahora — cualquier cosa que puedas sostener suma. Te serviría eso?"
+
+Derivación a formulario:
+"Para actualizar los datos de tu tarjeta podés hacerlo desde acá, es rápido y seguro: https://www.isf-argentina.org/formularios/actualizacion-datos-de-donante?donationId=a09f200000DEMO00AA"
+
+Derivación a humano:
+"Sin problema, te puedo pasar con alguien del equipo para que lo coordinen directamente. Te parece?"
+
+Cierre negativo con gratitud:
+"Te entiendo perfectamente, y te agradecemos mucho todo el tiempo que nos acompañaste. Si en algún momento querés volver, acá vamos a estar 🙏"
+
+Alerta al equipo (construcción CORRECTA — seguir siempre este modelo):
+Le paso el dato al equipo para que lo revisen. — NUNCA escribir: Te paso el dato al equipo.
+
+Respuesta ante alerta con motivo ya claro en el mensaje (ejemplo COMPLETO — la respuesta termina aquí, sin agregar ninguna pregunta):
+Buen dia! Si, seguimos aca. Es raro que no lleguen los emails — le paso el dato al equipo para que lo revisen. [ALERTA:emails]
+IMPORTANTE: la respuesta termina ahí. No agregar preguntas de cierre como hay algo mas, hay algo puntual, o similares.
+
+---
+ISF_INFO:
+SOBRE ISF ARGENTINA: Ingeniería Sin Fronteras Argentina (ISF-Ar) es una asociación civil interdisciplinaria argentina, no una filial extranjera, con identidad y gestión propias, parte de la red global de Ingeniería Sin Fronteras. Hace proyectos de ingeniería para el desarrollo comunitario en comunidades urbanas y rurales, trabajando por los derechos humanos. Tiene sedes en Buenos Aires (Medrano 1622), Córdoba y Colonia Dora (Santiago del Estero). Se financia con donaciones mensuales de personas y aportes de empresas aliadas. MISIÓN: Hacer proyectos de ingeniería para el desarrollo comunitario junto a comunidades en situación de vulnerabilidad, trabajando por el acceso a derechos fundamentales. VISIÓN: Un mundo donde todas las personas accedan a los servicios e infraestructura necesarios para vivir con dignidad. CÓMO TRABAJAMOS: Usamos metodologías participativas — diseñamos junto a las comunidades, no para ellas. Cada proyecto incluye diagnóstico participativo, diseño colectivo, construcción con voluntariado y capacitación local. Trabajamos en red con organizaciones sociales, cooperativas, universidades y empresas, en comunidades rurales, barrios populares y contextos de encierro. ÁREAS DE TRABAJO: Agua en comunidades rurales, Infraestructura comunitaria, Trabajo y producción, Energía, Formación e incidencia, Tecnologías digitales, Consultoría, Laboratorio de codiseño. PROYECTOS EN CURSO: 1. Agua para el desarrollo comunitario — Paso Grande, Santiago del Estero: sistemas de recolección de agua de lluvia para familias rurales sin acceso a agua potable, 87 cisternas construidas junto a la EFA Avellaneda y cooperativa La Minga. 2. Ampliación de centro comunitario, Córdoba: obra de infraestructura para ampliar un espacio comunitario existente. 3. Centro deportivo comunitario Libertad Eterna: infraestructura deportiva comunitaria. 4. Espacio de arte y trabajo en La Boca, Buenos Aires: junto a la Asociación Civil Isauro Arancibia, espacio para personas en situación de calle con sala de exposición, cafetería cooperativa y aulas-taller de oficios. 5. Patio recreativo para jóvenes: en proceso. 6. Espacio para las infancias — Unidad 47, San Martín, Buenos Aires: proyecto enfocado en los niños y niñas que visitan a sus madres detenidas, creando un espacio digno de encuentro y juego para las infancias durante las visitas, con patio de juegos, mural y salón participativo. Ver todos: https://isf-argentina.org/proyectos PREGUNTAS FRECUENTES: Cómo ser voluntario/a: formulario en https://isf-argentina.org/formularios/ser-voluntaria-o. Cómo donar: https://isf-argentina.org/formularios/donar. Cómo eligen los proyectos: las comunidades proponen una necesidad, ISF-Ar evalúa la viabilidad y el proyecto se diseña junto a la comunidad. Es argentina e independiente, no depende de ninguna sede exterior. CONTACTO: Tel +54 9 11 5624 8347 — info@isf-argentina.org — https://isf-argentina.org
+
+---
+CONTEXTO DEL DONANTE:
+Nombre: Donante Simulado
+Id donación (18 dígitos): a09f200000DEMO00AA
+Antigüedad: 36 meses como donante
+Monto mensual: $2.500 ARS
+Medio de pago: Visa Crédito
+Último cobro exitoso: marzo 2026
+Últimos 4 dígitos: 7823
+Episodios previos de rechazo: 0
+Email registrado: donante@ejemplo.com
+Intentos de contacto previos: 1
+Estado conversación WhatsApp: `
+
+let messages = [];
+let sfState = {
+  status: null,
+  intentos: 0,
+  ultimoEnvio: null,
+};
+let conversationStarted = false;
+let isTyping = false;
+
+function now() {
+  return new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-function nextMonthDate(){const d=new Date();d.setMonth(d.getMonth()+1,1);return d.toISOString().split('T')[0]}
-function humanDate(iso){if(!iso)return'—';const d=new Date(iso+'T12:00:00');return d.toLocaleDateString('es-AR',{day:'numeric',month:'long'})}
-function fmtTime(iso){
-  if(!iso)return'';
-  const d=new Date(iso),now=new Date();
-  const sameDay=d.toDateString()===now.toDateString();
-  const yesterday=new Date(now-86400000).toDateString()===d.toDateString();
-  if(sameDay)return d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
-  if(yesterday)return'Ayer';
-  if(now-d<7*86400000)return d.toLocaleDateString('es-AR',{weekday:'short'}).replace('.','');
-  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+function sfLog(action) {
+  const log = document.getElementById('sf-log');
+  const entry = document.createElement('div');
+  entry.className = 'sf-log-entry';
+  entry.innerHTML = `<span class="ts">${now()}</span><span class="action">${action}</span>`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
 }
-function initials(n){return n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2)}
-function avatarColor(n){const c=[['#dbeafe','#1d4ed8'],['#dcfce7','#15803d'],['#fce7f3','#9d174d'],['#fef9c3','#854d0e'],['#f3e8ff','#7e22ce'],['#ffedd5','#c2410c']];return c[n.charCodeAt(0)%c.length]}
-function calcMeses(d){if(!d)return 0;const dt=new Date(d),now=new Date();return Math.max(0,(now.getFullYear()-dt.getFullYear())*12+now.getMonth()-dt.getMonth())}
-function lastMsg(h){if(!h)return'';const lines=h.trim().split('\n').filter(l=>l.trim());const last=lines[lines.length-1];if(!last)return'';const m=last.match(/^\[[^\]]+\]\s+([^:]+):\s+(.+)$/s);return(m?m[2].trim():last).slice(0,60)}
-function lastMsgDate(h){
-  if(!h)return null;
-  const lines=h.trim().split('\n').filter(l=>l.trim());
-  for(let i=lines.length-1;i>=0;i--){
-    const m=lines[i].match(/^\[(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})\]/);
-    if(m){
-      const now=new Date();
-      const d=new Date(now.getFullYear(),parseInt(m[2])-1,parseInt(m[1]),parseInt(m[3]),parseInt(m[4]));
-      if(d>now)d.setFullYear(now.getFullYear()-1);
-      return d.toISOString();
-    }
+
+function flashField(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('updated');
+  void el.offsetWidth;
+  el.classList.add('updated');
+  setTimeout(() => el.classList.remove('updated'), 2000);
+}
+
+function updateSFState(newStatus) {
+  if (newStatus && newStatus !== sfState.status) {
+    sfState.status = newStatus;
+    const el = document.getElementById('sf-status');
+    el.querySelector('.sf-field-value').innerHTML = `<span class="status-pill status-${newStatus}">${newStatus}</span>`;
+    flashField('sf-status');
+    sfLog(`Update: WhatsApp_Estado__c → ${newStatus}`);
   }
+}
+
+function updateIntento() {
+  sfState.intentos++;
+  sfState.ultimoEnvio = new Date().toLocaleString('es-AR');
+  document.getElementById('val-intentos').textContent = sfState.intentos;
+  document.getElementById('val-intentos').classList.remove('null');
+  document.getElementById('val-ultimo').textContent = sfState.ultimoEnvio;
+  document.getElementById('val-ultimo').classList.remove('null');
+  flashField('sf-intentos');
+  flashField('sf-ultimo');
+  sfLog(`Update: Intentos → ${sfState.intentos}`);
+  sfLog(`Update: UltimoEnvio → ahora`);
+}
+
+function addMessage(role, text) {
+  const container = document.getElementById('wa-messages');
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  const cleanText = text.replace(/\[ESTADO:[^\]]+\]/g, '').replace(/\[ALERTA:[^\]]+\]/g, '').trim();
+  bubble.innerHTML = cleanText.replace(/\n/g, '<br>');
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+  bubble.appendChild(time);
+
+  row.appendChild(bubble);
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+  const container = document.getElementById('wa-messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.id = 'typing-row';
+  row.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-row');
+  if (el) el.remove();
+}
+
+function detectStateFromResponse(text) {
+  const match = text.match(/\[ESTADO:(cerrado_positivo|cerrado_negativo|derivado_humano)\]/);
+  if (match) return match[1];
   return null;
 }
-function parseHist(s){
-  if(!s)return[];
-  const lines=s.split('\n');
-  const result=[];
-  for(const l of lines){
-    const m=l.match(/^\[([^\]]+)\]\s+([^:]+):\s+(.+)$/s);
-    if(m){
-      const sender=m[2].trim().toUpperCase();
-      const type=['MAITENA','GENARO'].includes(sender)?'bot':sender==='DONANTE'?'donor':'human';
-      result.push({time:m[1].trim(),sender:m[2].trim(),type,text:m[3].trim()});
-    } else if(result.length>0){
-      result[result.length-1].text+='\n'+l;
-    }
+
+function detectAlertsFromResponse(text) {
+  const alerts = [];
+  const regex = /\[ALERTA:(\w+)\]/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    alerts.push(match[1]);
   }
-  return result;
-}
-function nowStr(){const n=new Date();return`${n.getDate().toString().padStart(2,'0')}/${(n.getMonth()+1).toString().padStart(2,'0')} ${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`}
-function isWindowExpired(historial){
-  if(!historial)return true;
-  const msgs=parseHist(historial);
-  const lastDonor=msgs.filter(m=>m.type==='donor').pop();
-  if(!lastDonor)return true;
-  const match=lastDonor.time.match(/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
-  if(!match)return true;
-  const now=new Date();
-  const msgDate=new Date(now.getFullYear(),parseInt(match[2])-1,parseInt(match[1]),parseInt(match[3]),parseInt(match[4]));
-  if(msgDate>now)msgDate.setFullYear(now.getFullYear()-1);
-  return(now-msgDate)>24*60*60*1000;
-}
-function lastSenderIsOperator(historial){
-  const msgs=parseHist(historial).filter(m=>m.text.trim());
-  if(!msgs.length)return false;
-  return msgs[msgs.length-1].type==='human';
+  return alerts;
 }
 
-function pillInfo(d){
-  if(d.estado==='derivado_humano')return['ph','ti-user','Con humano'];
-  if(d.estado==='cerrado_positivo')return['pp','ti-check','Cerrado positivo — chequear'];
-  if(d.estado==='cerrado_negativo')return['pn','ti-x','Cerrado negativo'];
-  if(d.estado==='en_conversacion')return['pec','ti-message-chatbot','Bot conversando'];
-  if(d.estado==='primer_envio')return['pec','ti-send','Primer contacto'];
-  if(!d.estado&&d.liberar_en)return['pr','ti-calendar','Programada'];
-  return['ph','ti-circle','Activo'];
-}
-function badgeClass(e){if(e==='derivado_humano')return'bh';if(e==='cerrado_positivo')return'bp';if(e==='cerrado_negativo')return'bn';if(e==='en_conversacion'||e==='primer_envio')return'bec';return'br'}
-function botStatusBadge(d){
-  if(d.estado==='derivado_humano')return['bot-off','ti-robot-off','Maitena desactivada'];
-  return['bot-on','ti-robot','Maitena activa'];
-}
+const ALERT_LABELS = {
+  emails: 'No le llegan los emails',
+  voluntario: 'Se anotó como voluntario sin respuesta',
+  general: 'Consulta no relacionada con el pago'
+};
 
-const TAB_TAGS={'derivado_humano':[['bh','ti-user','Con humano'],['bot-off','ti-robot-off','Maitena desactivada']],'cerrado_negativo':[['bn','ti-x','Cerrado negativo'],['bot-on','ti-robot','Maitena activa']],'cerrado_positivo':[['bp','ti-check','Cerrado positivo — chequear'],['bot-on','ti-robot','Maitena activa']],'en_conversacion':[['bec','ti-message-chatbot','Bot conversando'],['bot-on','ti-robot','Maitena activa']],'programadas':[['br','ti-calendar','Programada'],['bot-on','ti-robot','Maitena activa']],'primer_envio':[['bec','ti-send','Primer contacto'],['bot-on','ti-robot','Maitena activa']],};
-function goBack(){
-  document.querySelector('.sidebar')?.classList.remove('hidden');
-  document.getElementById('conv')?.classList.remove('visible');
-}
-function switchToTab(t){
-  const tabMap={'derivado_humano':0,'cerrado_negativo':1,'cerrado_positivo':2,'en_conversacion':3,'programadas':4,'primer_envio':5};
-  const idx=tabMap[t];if(idx===undefined)return;
-  const tabEls=document.querySelectorAll('.tab');
-  if(!tabEls[idx])return;
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  tabEls[idx].classList.add('active');
-  tab=t;renderTabTags();renderList();
-}
-function renderTabTags(){
-  const el=document.getElementById('tab-tags');if(!el)return;
-  const tags=TAB_TAGS[tab]||[];
-  el.innerHTML=tags.map(([cls,icon,lbl])=>`<span class="badge ${cls}"><i class="ti ${icon}" style="font-size:9px"></i> ${lbl}</span>`).join('');
-  el.style.display=tags.length?'flex':'none';
-}
-function updateCounts(d){
-  document.getElementById('cnt-h').textContent=d.filter(x=>x.estado==='derivado_humano').length;
-  document.getElementById('cnt-n').textContent=d.filter(x=>x.estado==='cerrado_negativo').length;
-  document.getElementById('cnt-p').textContent=d.filter(x=>x.estado==='cerrado_positivo').length;
-  const ecEl=document.getElementById('cnt-ec');if(ecEl)ecEl.textContent=d.filter(x=>x.estado==='en_conversacion').length;
-  const prEl=document.getElementById('cnt-pr');if(prEl)prEl.textContent=d.filter(x=>x.liberar_en&&!x.estado).length;
-  const peEl=document.getElementById('cnt-pe');if(peEl)peEl.textContent=d.filter(x=>x.estado==='primer_envio').length;
-}
-function switchTab(t,el){tab=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');renderTabTags();renderList();if(window.innerWidth<=768)goBack();}
-
-function renderList(){
-  const list=document.getElementById('donor-list');
-  const base=tab==='programadas'?donors.filter(d=>d.liberar_en&&!d.estado):donors.filter(d=>d.estado===tab);
-  const filtered=[...base].sort((a,b)=>{
-    // Unread always first
-    const au=unread.has(a.id)?1:0,bu=unread.has(b.id)?1:0;
-    if(au!==bu)return bu-au;
-    // Then by last activity
-    const ta=a.ultimo_envio?new Date(a.ultimo_envio).getTime():0;
-    const tb=b.ultimo_envio?new Date(b.ultimo_envio).getTime():0;
-    return tb-ta;
+function showAlertNotification(alerts) {
+  alerts.forEach(alert => {
+    const label = ALERT_LABELS[alert] || alert;
+    const notif = document.createElement('div');
+    notif.style.cssText = 'margin: 4px 0; padding: 8px 12px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); border-radius: 8px; font-size: 12px; color: #f59e0b; font-family: monospace;';
+    notif.innerHTML = '&#9888; Alerta Make &rarr; ' + label + ' <span style="opacity:.6">(equipo notificado)</span>';
+    document.getElementById('wa-messages').appendChild(notif);
+    document.getElementById('wa-messages').scrollTop = 99999;
+    sfLog('ALERTA: ' + label);
   });
-  if(!filtered.length){list.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-2)">Sin conversaciones en este estado</div>';return}
-  list.innerHTML=filtered.map(d=>{
-    const[pc,pi,pt]=pillInfo(d);
-    const[avBg,avFg]=avatarColor(d.name);
-    const isSel=sel&&sel.id===d.id;
-    const isUnread=unread.has(d.id);
-    const cnt=unreadCount.get(d.id)||0;
-    return`<div class="donor-card${isSel?' sel':''}${isUnread?' unread':''}" onclick="selectDonor('${d.id}')">
-      <div class="dc-avatar" style="background:${avBg};color:${avFg}">${initials(d.name)}</div>
-      <div class="dc-body">
-        <div class="dc-top">
-          <div class="dc-name">${d.name}</div>
-          <div class="dc-time">${fmtTime(d.ultimo_envio)}</div>
-        </div>
-        <div class="dc-bottom">
-          <div class="dc-preview">${d.ultimo_mensaje||'Sin mensajes'}</div>
-          <div class="dc-right">
-            ${cnt>0?`<span class="unread-count">${cnt}</span>`:''}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
 }
 
-function mapRecord(r){return{
-  id:r.Id,name:`${r.npe03__Contact__r?.FirstName||''} ${r.npe03__Contact__r?.LastName||''}`.trim(),
-  phone:(r.npe03__Contact__r?.MobilePhone||'').replace(/^0/,''),
-  estado:r.WhatsApp_Estado__c,monto:r.npe03__Amount__c,medio_pago:r.Medio_de_pago__c,
-  antiguedad_meses:calcMeses(r.npe03__Date_Established__c),intentos:r.WhatsApp_Intentos__c||0,
-  liberar_en:r.Whatsapp_Liberar_en__c,historial:r.WhatsApp_Historial_Archivo__c||'',
-  nombre:r.npe03__Contact__r?.FirstName||'',
-  ultimo_mensaje:lastMsg(r.WhatsApp_Historial_Archivo__c||''),
-  ultimo_envio:lastMsgDate(r.WhatsApp_Historial_Archivo__c||'')||r.WhatsApp_UltimoEnvio__c||null
-}}
-
-async function loadAll(){
-  const c=cfg();const list=document.getElementById('donor-list');
-  if(!c.wl){list.innerHTML=`<div class="setup-banner"><i class="ti ti-settings" style="font-size:14px"></i> Configurá los webhooks para comenzar.</div>`;updateCounts([]);return}
-  list.innerHTML='<div class="loading-msg"><i class="ti ti-loader" style="font-size:15px"></i> Cargando...</div>';
-  try{
-    const r=await fetch(c.wl);const data=await r.json();
-    donors=(data.records||[]).map(mapRecord);
-    updateCounts(donors);renderTabTags();renderList();
-  }catch(e){list.innerHTML='<div class="error-msg">Error al conectar con Make. Verificá la URL del webhook.</div>'}
-}
-
-function selectDonor(id){
-  sel=donors.find(d=>d.id===id);if(!sel)return;
-  // Mobile: show conversation, hide sidebar
-  if(window.innerWidth<=768){
-    document.querySelector('.sidebar')?.classList.add('hidden');
-    document.getElementById('conv')?.classList.add('visible');
+async function callClaude(userMessage) {
+  if (userMessage) {
+    messages.push({ role: 'user', content: userMessage });
   }
-  unread.delete(id);unreadCount.delete(id);
-  if(document.title.startsWith('(!)') && unread.size===0) document.title=document.title.replace('(!) ','');
-  renderList();
-  const si=document.getElementById('sidebar-info');si.style.display='block';
-  const m=parseInt(sel.monto||0);
-  document.getElementById('si-monto').textContent=m?'$'+m.toLocaleString('es-AR'):'—';
-  document.getElementById('si-medio').textContent=sel.medio_pago||'—';
-  const mo=parseInt(sel.antiguedad_meses||0);
-  document.getElementById('si-ant').textContent=mo>=12?`${Math.floor(mo/12)} años`:`${mo} meses`;
-  document.getElementById('si-int').textContent=sel.intentos||'0';
-  const msgs=parseHist(sel.historial);
-  renderConv(sel,msgs);
 
-}
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      temperature: 0.9,
+      system: SYSTEM_PROMPT,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: messages
+    })
+  });
 
-function actionsHtml(){
-  return`
-    ${sel.estado!=='derivado_humano'?`<button class="btn btn-blue" onclick="doTake()"><i class="ti ti-user-plus" style="font-size:11px"></i> Tomar</button>`:''}
-    <button class="btn btn-default" onclick="doLiberate()"><i class="ti ti-calendar-plus" style="font-size:11px"></i> Liberar</button>
-    ${sel.estado!=='cerrado_positivo'?`<button class="btn btn-green" onclick="doResolve('cerrado_positivo')"><i class="ti ti-check" style="font-size:11px"></i> Positivo</button>`:''}
-    ${sel.estado!=='cerrado_negativo'?`<button class="btn btn-red" onclick="doResolve('cerrado_negativo')"><i class="ti ti-x" style="font-size:11px"></i> Negativo</button>`:''}
-    ${sel.estado==='cerrado_negativo'?`<button style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:500;border-radius:var(--r);border:none;cursor:pointer;font-family:inherit;background:#009DDC;color:#fff;transition:background 0.12s" onmouseover="this.style.background='#007BB0'" onmouseout="this.style.background='#009DDC'" onclick="openBajaModal()"><svg width="14" height="10" viewBox="0 0 24 17" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M10 2C11.1 2 12.1 2.4 12.9 3.1C13.6 1.3 15.4 0 17.5 0C20 0 22 2 22 4.5C22 4.8 22 5.1 21.9 5.4C23.1 6.1 24 7.4 24 8.9C24 11.2 22.1 13 19.8 13H4.5C2 13 0 11 0 8.5C0 6.3 1.5 4.4 3.6 3.9C3.5 3.6 3.5 3.3 3.5 3C3.5 1.3 4.8 0 6.5 0C7.8 0 8.9 0.8 10 2Z"/></svg> Dar de baja en SF</button>`:''}`;
-}
-
-function inputAreaHtml(){
-  if(sel.estado==='en_conversacion'||sel.estado==='primer_envio')
-    return`<div class="input-area"><div class="waiting-reply"><i class="ti ti-robot" style="font-size:15px;flex-shrink:0;color:var(--isf)"></i> Maitena está manejando esta conversación. Podés tomar el control si es necesario.</div></div>`;
-  const canChat=sel.estado==='derivado_humano';
-  if(!canChat)return'';
-  const expired=isWindowExpired(sel.historial);
-  if(expired){
-    if(lastSenderIsOperator(sel.historial))
-      return`<div class="input-area"><div class="waiting-reply"><i class="ti ti-clock" style="font-size:15px;flex-shrink:0"></i> Template enviado. Esperando respuesta del donante para poder escribir libremente.</div></div>`;
-    return`<div class="input-area">
-      <div class="window-warning"><i class="ti ti-clock-exclamation" style="font-size:16px;flex-shrink:0"></i><div><strong>Ventana de 24hs vencida.</strong> Debés enviar el template de reapertura y esperar la respuesta antes de escribir libremente.</div></div>
-      <button class="btn btn-orange" style="width:100%;justify-content:center" onclick="doTemplate()"><i class="ti ti-send" style="font-size:12px"></i> Enviar template de reapertura</button>
-    </div>`;
+  const data = await response.json();
+  if (!response.ok || data.error) {
+    const msg = data.error?.message || data.error?.type || JSON.stringify(data).slice(0, 300);
+    throw new Error('API ' + response.status + ': ' + msg);
   }
-  return`<div class="input-area">
-    <div class="input-row">
-      <button class="emoji-btn" onclick="toggleEmojiPicker()" title="Emojis">😊</button>
-      <textarea class="msg-ta" id="msg-input" rows="1" placeholder="Escribí tu respuesta..." onkeydown="handleKey(event)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
-      <button class="send-btn" onclick="doSend()"><i class="ti ti-send" style="font-size:15px"></i></button>
-    </div>
-    <div class="ai-row">
-      <button class="ai-rbtn" onclick="requestAiSuggestion()" id="ai-btn" style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;border:1px solid var(--isf);color:var(--isf);background:var(--isf-light);font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-sparkles" style="font-size:11px"></i> Sugerir respuesta</button>
-      <span id="ai-s" style="display:none"></span>
-    </div>
-  </div>`;
+  const textBlock = data.content?.find(b => b.type === 'text');
+  if (!textBlock?.text) {
+    throw new Error('Respuesta vacía: ' + JSON.stringify(data).slice(0, 200));
+  }
+  const text = textBlock.text;
+  messages.push({ role: 'assistant', content: data.content });
+  return text;
 }
 
-function renderConv(d,msgs){
-  const[bg,fg]=avatarColor(d.name);const[pc,pi,pt]=pillInfo(d);
-  const[bc,bi,bt]=botStatusBadge(d);
-  const msgsHtml=msgs.length?msgs.map(m=>{
-    const cls=m.type==='donor'?'m-donor':m.type==='bot'?'m-bot':'m-human';
-    const bcls=m.type==='donor'?'bdonor':m.type==='bot'?'bbot':'bhuman';
-    const lbl=m.type==='donor'?`<div class="mlabel mlabel-r">Donante</div>`:m.type==='bot'?`<div class="mlabel"><i class="ti ti-robot" style="font-size:10px"></i> ${m.sender}</div>`:`<div class="mlabel"><i class="ti ti-user-check" style="font-size:10px"></i> ${m.sender}</div>`;
-    return`<div class="msg ${cls}">${lbl}<div class="bubble ${bcls}">${m.text}</div><div class="mtime${m.type==='donor'?' mtime-r':''}">${m.time}</div></div>`;
-  }).join(''):'<div style="text-align:center;font-size:12px;color:var(--text-2);padding:24px">Sin mensajes registrados</div>';
-  document.getElementById('conv').innerHTML=`
-    <div class="conv-header">
-      <div class="ch-top">
-        <div class="ch-id">
-          <button class="conv-back" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
-          <div class="avatar" style="background:${bg};color:${fg}">${initials(d.name)}</div>
-          <div><div class="cn">${d.name}</div><div class="cm">+54 9 ${d.phone}</div></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span class="pill ${pc}" id="status-pill"><i class="ti ${pi}" style="font-size:11px"></i> ${pt}</span>
-          ${d.liberar_en?`<span class="badge bot-resume" style="margin:0"><i class="ti ti-clock" style="font-size:9px"></i> Outbound retoma ${humanDate(d.liberar_en)}</span>`:''}
-        </div>
-      </div>
-      <div class="actions" id="actions">${actionsHtml()}</div>
+const TEMPLATE_INICIAL = `Hola 👋 Soy Maitena del equipo de Ingeniería Sin Fronteras Argentina.
 
-    </div>
-    <div class="chat" id="chat">${msgsHtml}</div>
-    ${inputAreaHtml()}`;
-  const chat=document.getElementById('chat');if(chat)chat.scrollTop=chat.scrollHeight;
+Te escribimos porque tu donación mensual de $2.500 no pudo procesarse este mes con tu Visa Crédito.
+
+Podemos ayudarte a regularizarlo? Tu apoyo hace posible que sigamos trabajando en comunidades rurales de todo el país 🙏`;
+
+async function initBot() {
+  if (conversationStarted) return;
+  conversationStarted = true;
+
+  sfLog(`[Schedule 9am] Query SOQL ejecutada`);
+  sfLog(`Donante encontrado: DonationStatus = Rechazado`);
+  sfLog(`WhatsApp_Estado__c = null → proceder`);
+  sfLog(`Enviando template: isf_recupero_donacion_v1`);
+
+  await new Promise(r => setTimeout(r, 900));
+  showTyping();
+  await new Promise(r => setTimeout(r, 700));
+  removeTyping();
+
+  addMessage('bot', TEMPLATE_INICIAL);
+  messages.push({ role: 'assistant', content: TEMPLATE_INICIAL });
+
+  updateIntento();
+  updateSFState('primer_envio');
+
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('wa-input').disabled = false;
+  document.getElementById('wa-input').focus();
 }
 
-function updatePill(){
-  if(!sel)return;
-  const[pc,pi,pt]=pillInfo(sel);const pill=document.getElementById('status-pill');
-  if(pill){pill.className='pill '+pc;pill.innerHTML=`<i class="ti ${pi}" style="font-size:11px"></i> ${pt}`}
-}
-function refreshActions(){const acts=document.getElementById('actions');if(acts)acts.innerHTML=actionsHtml()}
+async function sendMessage() {
+  const input = document.getElementById('wa-input');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
 
-async function doTake(){
-  if(!sel)return;const c=cfg();
-  if(c.wt){try{await fetch(c.wt,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donationId:sel.id})})}catch(e){}}
-  sel.estado='derivado_humano';sel.liberar_en=null;
-  donors=donors.map(d=>d.id===sel.id?sel:d);
-  updateCounts(donors);switchToTab('derivado_humano');
-  const msgs=parseHist(sel.historial);
-  renderConv(sel,msgs);
+  isTyping = true;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('send-btn').disabled = true;
 
-}
+  addMessage('user', text);
 
-async function doSend(){
-  const inp=document.getElementById('msg-input');if(!inp||!sel)return;
-  const text=inp.value.trim();if(!text)return;
-  inp.disabled=true;
-  const c=cfg();const op=c.op||'Equipo ISF';
-  const entry=`[${nowStr()}] ${op}: ${text}`;
-  const updatedHistorial=(sel.historial?sel.historial+'\n':'')+entry;
-  if(c.ws){
-    try{
-      const r=await fetch(c.ws,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donationId:sel.id,phone:sel.phone,message:text,operatorName:op,updatedHistorial})});
-      const data=await r.json();
-      if(data.error==='window_expired'){
-        inp.disabled=false;
-        const ia=document.querySelector('.input-area');
-        if(ia)ia.innerHTML=`<div class="window-warning"><i class="ti ti-clock-exclamation" style="font-size:16px;flex-shrink:0"></i><div>Ventana vencida. El mensaje no se envió.</div></div><button class="btn btn-orange" style="width:100%;justify-content:center;margin-top:8px" onclick="doTemplate()"><i class="ti ti-send" style="font-size:12px"></i> Enviar template de reapertura</button>`;
-        return;
+  sfLog(`[Webhook] Mensaje entrante del donante`);
+  const estadosProtegidos = ['derivado_humano', 'cerrado_negativo'];
+  if (!estadosProtegidos.includes(sfState.status)) {
+    updateSFState('en_conversacion');
+    sfLog(`Update: Estado → en_conversacion`);
+  } else {
+    sfLog(`Estado preservado: ${sfState.status} (no se sobreescribe)`);
+  }
+
+  await new Promise(r => setTimeout(r, 400));
+  showTyping();
+
+  try {
+    const response = await callClaude(text);
+    removeTyping();
+    addMessage('bot', response);
+
+    const alerts = detectAlertsFromResponse(response);
+    if (alerts.length) showAlertNotification(alerts);
+
+    const detectedState = detectStateFromResponse(response);
+    if (detectedState) {
+      updateSFState(detectedState);
+      if (detectedState === 'cerrado_positivo') {
+        sfLog(`Update: DonationStatus → Activo`);
+        document.getElementById('sf-donation').querySelector('.sf-field-value').textContent = 'Activo';
+        document.getElementById('sf-donation').querySelector('.sf-field-value').style.color = 'var(--accent2)';
+        flashField('sf-donation');
       }
-    }catch(e){}
+    }
+  } catch(e) {
+    removeTyping();
+    addMessage('bot', '⚠️ Error: ' + e.message);
+    console.error('API error:', e);
   }
-  sel.historial=updatedHistorial;sel.ultimo_mensaje=text;sel.ultimo_envio=new Date().toISOString();
-  donors=donors.map(d=>d.id===sel.id?sel:d);
-  inp.value='';inp.style.height='auto';inp.disabled=false;inp.focus();
-  const chat=document.getElementById('chat');
-  if(chat){const el=document.createElement('div');el.className='msg m-human';el.innerHTML=`<div class="mlabel"><i class="ti ti-user-check" style="font-size:10px"></i> ${op}</div><div class="bubble bhuman">${text}</div><div class="mtime">${nowStr()}</div>`;chat.appendChild(el);chat.scrollTop=chat.scrollHeight}
 
+  isTyping = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
 }
 
-async function doTemplate(){
-  if(!sel)return;const c=cfg();const op=c.op||'Equipo ISF';
-  const templateText=`Hola ${sel.nombre}, te escribe ${op} del equipo de ISF Argentina. Quedó pendiente la conversación, te parece retomar?`;
-  const entry=`[${nowStr()}] ${op}: ${templateText}`;
-  const updatedHistorial=(sel.historial?sel.historial+'\n':'')+entry;
-  if(c.wtr){try{await fetch(c.wtr,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donationId:sel.id,phone:sel.phone,nombre:sel.nombre,operatorName:op,updatedHistorial})})}catch(e){}}
-  sel.historial=updatedHistorial;sel.ultimo_mensaje=templateText;sel.estado='derivado_humano';
-  sel.ultimo_envio=new Date().toISOString();
-  donors=donors.map(d=>d.id===sel.id?sel:d);
-  updateCounts(donors);updatePill();
-  const ia=document.querySelector('.input-area');
-  if(ia)ia.innerHTML=`<div class="waiting-reply"><i class="ti ti-clock" style="font-size:15px;flex-shrink:0"></i> Template enviado. Esperando respuesta del donante para poder escribir libremente.</div>`;
-  const chat=document.getElementById('chat');
-  if(chat){const el=document.createElement('div');el.className='msg m-human';el.innerHTML=`<div class="mlabel"><i class="ti ti-user-check" style="font-size:10px"></i> ${op}</div><div class="bubble bhuman">${templateText}</div><div class="mtime">${nowStr()}</div>`;chat.appendChild(el);chat.scrollTop=chat.scrollHeight}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
 }
 
-function openBajaModal(){
-  if(!sel)return;
-  document.getElementById('baja-motivo').value='';
-  document.getElementById('baja-obs').value='';
-  document.getElementById('baja-overlay').classList.add('open');
-}
-function closeBajaModal(){document.getElementById('baja-overlay').classList.remove('open')}
-async function confirmBaja(){
-  if(!sel)return;
-  const motivo=document.getElementById('baja-motivo').value;
-  if(!motivo){alert('Seleccioná un motivo de baja');return}
-  const obs=document.getElementById('baja-obs').value;
-  const c=cfg();
-  if(!c.wb){alert('Webhook de baja (wb) no configurado en el config.');return}
-  try{
-    await fetch(c.wb,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donationId:sel.id,motivo,observaciones:obs})});
-    closeBajaModal();
-    donors=donors.filter(d=>d.id!==sel.id);
-    sel=null;updateCounts(donors);renderList();
-    document.getElementById('conv').innerHTML='<div class="empty"><i class="ti ti-check" style="font-size:36px;color:var(--isf)"></i><span>Baja registrada en Salesforce</span></div>';
-  }catch(e){alert('Error al procesar la baja.');}
-}
-function doLiberate(){
-  if(!sel)return;
-  document.getElementById('liberate-date').value=nextMonthDate();
-  document.getElementById('liberate-overlay').classList.add('open');
-}
-function closeLiberateModal(){document.getElementById('liberate-overlay').classList.remove('open')}
-async function confirmLiberate(){
-  if(!sel)return;
-  const date=document.getElementById('liberate-date').value;
-  if(!date){alert('Seleccioná una fecha');return}
-  const c=cfg();
-  if(c.wli){try{await fetch(c.wli,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donationId:sel.id,liberarEn:date})})}catch(e){}}
-  sel.liberar_en=date;sel.estado=null;donors=donors.map(d=>d.id===sel.id?sel:d);
-  closeLiberateModal();updateCounts(donors);switchToTab('programadas');renderConv(sel,parseHist(sel.historial));
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
 }
 
-async function doResolve(res){
-  if(!sel)return;const c=cfg();
-  if(c.wr){try{await fetch(c.wr,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({donationId:sel.id,resolution:res})})}catch(e){}}
-  sel.estado=res;donors=donors.map(d=>d.id===sel.id?sel:d);
-  updateCounts(donors);switchToTab(res);
-  const msgs=parseHist(sel.historial);renderConv(sel,msgs);
+function resetSim() {
+  sessionStorage.removeItem('isf_api_key');
+  API_KEY = '';
+  messages = [];
+  sfState = { status: null, intentos: 0, ultimoEnvio: null };
+  conversationStarted = false;
+
+  document.getElementById('wa-messages').innerHTML = '';
+  document.getElementById('sf-status').querySelector('.sf-field-value').innerHTML = '<span class="status-pill status-null">null</span>';
+  document.getElementById('val-intentos').textContent = '0';
+  document.getElementById('val-intentos').classList.add('null');
+  document.getElementById('val-ultimo').textContent = 'null';
+  document.getElementById('val-ultimo').classList.add('null');
+  document.getElementById('val-nocontactar').textContent = 'false';
+  document.getElementById('sf-donation').querySelector('.sf-field-value').textContent = 'Rechazado';
+  document.getElementById('sf-donation').querySelector('.sf-field-value').style.color = 'var(--danger)';
+
+  document.getElementById('sf-log').innerHTML = '<div class="sf-log-entry"><span class="ts">--:--:--</span>Reiniciado. Esperando&#8230;</div>';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('wa-input').disabled = true;
+
+  if (API_KEY) {
+    setTimeout(initBot, 600);
+  } else {
+    document.getElementById('api-screen').style.display = 'flex';
+  }
 }
 
-function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend()}}
+function toggleFeedback() {
+  document.querySelector('.fb-panel').classList.toggle('collapsed');
+}
 
-async function requestAiSuggestion(){
-  if(!sel)return;
-  const btn=document.getElementById('ai-btn');
-  const el=document.getElementById('ai-s');
-  if(!el)return;
-  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" style="font-size:11px"></i> Generando...';}
-  el.style.display='none';el.onclick=null;
-  const c=cfg();
-  if(!c.wa){
-    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-sparkles" style="font-size:11px"></i> Sugerir respuesta';}
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzdjWSR6AEXe8CjiL_23e3fG7zHqa3ROW7IvA46Zuv3j1byxMLwFC8vlcaaDBGrd-IPiQ/exec';
+let fbRating = 0;
+let fbHistory = [];
+
+function setRating(v) {
+  fbRating = v;
+  document.querySelectorAll('.fb-star').forEach(s => {
+    s.classList.toggle('active', parseInt(s.dataset.v) <= v);
+  });
+  checkFbReady();
+}
+
+function checkFbReady() {
+  const hasConversation = messages.length > 0;
+  const hasRating = fbRating > 0;
+  document.getElementById('fb-submit').disabled = !(hasConversation && hasRating);
+}
+
+async function submitFeedback() {
+  const comment = document.getElementById('fb-comment').value.trim();
+  const btn = document.getElementById('fb-submit');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  const conversationText = messages.map(m => {
+    const role = m.role === 'user' ? 'DONANTE' : 'MAITENA';
+    let text = '';
+    if (typeof m.content === 'string') {
+      text = m.content;
+    } else if (Array.isArray(m.content)) {
+      text = m.content
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join(' ');
+    }
+    text = text.replace(/\[ESTADO:[^\]]+\]/g, '').replace(/\[ALERTA:[^\]]+\]/g, '').trim();
+    if (!text) return null;
+    return role + ': ' + text;
+  }).filter(Boolean).join('\n---\n');
+
+  const payload = {
+    rating: fbRating,
+    comment: comment || '(sin comentario)',
+    sfState: sfState.status || 'sin estado',
+    conversation: conversationText
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const stars = '★'.repeat(fbRating) + '☆'.repeat(5 - fbRating);
+    const entry = document.createElement('div');
+    entry.className = 'fb-entry';
+    entry.innerHTML = '<span class="stars">' + stars + '</span> ' + (comment || '(sin comentario)').slice(0, 60) + (comment.length > 60 ? '...' : '');
+    const history = document.getElementById('fb-history');
+    if (fbHistory.length === 0) history.innerHTML = '';
+    history.appendChild(entry);
+    fbHistory.push(payload);
+
+    document.getElementById('fb-success').style.display = 'block';
+    document.getElementById('fb-comment').value = '';
+    fbRating = 0;
+    document.querySelectorAll('.fb-star').forEach(s => s.classList.remove('active'));
+    setTimeout(() => { document.getElementById('fb-success').style.display = 'none'; }, 3000);
+
+  } catch(err) {
+    alert('Error al guardar: ' + err.message);
+  }
+
+  btn.textContent = 'Guardar en Drive';
+  checkFbReady();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('wa-input').disabled = true;
+
+  document.getElementById('api-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitKey();
+  });
+
+  if (API_KEY) {
+    setTimeout(initBot, 1000);
+  } else {
+    document.getElementById('api-screen').style.display = 'flex';
+  }
+});
+
+function submitKey() {
+  const val = document.getElementById('api-input').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    document.getElementById('api-error').style.display = 'block';
     return;
   }
-  const msgs=parseHist(sel.historial);
-  const last=msgs.slice(-5).map(m=>`${m.sender}: ${m.text}`).join('\n');
-  try{
-    const r=await fetch(c.wa,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:sel.nombre,monto:String(sel.monto||''),estado:sel.estado,historial:last})});
-    const data=await r.json();
-    const txt=data.suggestion;
-    if(txt){
-      el.style.display='inline';el.className='ai-txt';el.textContent=txt;
-      el.onclick=()=>{const i=document.getElementById('msg-input');if(i){i.value=txt;i.focus();i.style.height='auto';i.style.height=i.scrollHeight+'px';}};
-      if(btn){btn.innerHTML='<i class="ti ti-refresh" style="font-size:11px"></i> Nueva sugerencia';btn.disabled=false;}
-    }
-  }catch(e){
-    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-sparkles" style="font-size:11px"></i> Sugerir respuesta';}
-  }
+  API_KEY = val;
+  sessionStorage.setItem('isf_api_key', val);
+  document.getElementById('api-screen').style.display = 'none';
+  setTimeout(initBot, 600);
 }
-
-function appendMessages(msgs){
-  const chat=document.getElementById('chat');if(!chat)return;
-  const badge=document.getElementById('new-msg-badge');
-  const wasAtBottom=chat.scrollHeight-chat.scrollTop-chat.clientHeight<60;
-  msgs.forEach(m=>{
-    const cls=m.type==='donor'?'m-donor':m.type==='bot'?'m-bot':'m-human';
-    const bcls=m.type==='donor'?'bdonor':m.type==='bot'?'bbot':'bhuman';
-    const lbl=m.type==='donor'?`<div class="mlabel mlabel-r">Donante</div>`:m.type==='bot'?`<div class="mlabel"><i class="ti ti-robot" style="font-size:10px"></i> ${m.sender}</div>`:`<div class="mlabel"><i class="ti ti-user-check" style="font-size:10px"></i> ${m.sender}</div>`;
-    const el=document.createElement('div');
-    el.className=`msg ${cls}`;
-    el.innerHTML=`${lbl}<div class="bubble ${bcls}">${m.text}</div><div class="mtime${m.type==='donor'?' mtime-r':''}">${m.time}</div>`;
-    chat.appendChild(el);
-  });
-  if(wasAtBottom)chat.scrollTop=chat.scrollHeight;
-  else if(badge)badge.classList.add('show');
-}
-function scrollToNew(){
-  const chat=document.getElementById('chat');if(chat)chat.scrollTop=chat.scrollHeight;
-  const badge=document.getElementById('new-msg-badge');if(badge)badge.classList.remove('show');
-}
-
-function showNotif(donor){
-  unread.add(donor.id);
-  if(!document.title.startsWith('(!)'))document.title='(!) '+document.title;
-  const existing=document.getElementById('notif-'+donor.id);if(existing)existing.remove();
-  const c=document.getElementById('toast-container');if(!c)return;
-  const preview=donor.ultimo_mensaje||'Nuevo mensaje';
-  const popup=document.createElement('div');
-  popup.className='notif-popup';popup.id='notif-'+donor.id;
-  popup.innerHTML=`<div class="notif-header"><div class="notif-name"><i class="ti ti-message-circle" style="font-size:14px;color:var(--isf)"></i> ${donor.name}</div><button class="notif-close" onclick="event.stopPropagation();this.closest('.notif-popup').remove()">×</button></div><div class="notif-preview">${preview}</div>`;
-  popup.onclick=()=>{
-    const tabMap={'derivado_humano':0,'cerrado_negativo':1,'cerrado_positivo':2,'en_conversacion':3,'primer_envio':5};
-    const idx=tabMap[donor.estado]??4;
-    const tabEls=document.querySelectorAll('.tab');
-    if(tabEls[idx]){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tabEls[idx].classList.add('active');tab=donor.estado||'programadas';}
-    renderList();selectDonor(donor.id);popup.remove();
-  };
-  c.appendChild(popup);
-  setTimeout(()=>{if(popup.parentElement)popup.remove()},8000);
-}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&unread.size===0)document.title=document.title.replace('(!) ','')});
-
-async function handleNewMessage(donationId){
-  const c=cfg();if(!c.wl)return;
-  try{
-    const r=await fetch(c.wl);const data=await r.json();
-    const records=data.records||[];
-    const freshRec=records.find(r=>r.Id===donationId);
-    if(!freshRec)return;
-    const fresh=mapRecord(freshRec);
-    if(sel&&sel.id===donationId){
-      const oldMsgs=parseHist(sel.historial);
-      const newMsgs=parseHist(fresh.historial);
-      const added=newMsgs.slice(oldMsgs.length);
-      if(added.length>0){
-        sel.historial=fresh.historial;sel.ultimo_mensaje=fresh.ultimo_mensaje;
-        appendMessages(added);
-        if(added.some(m=>m.type==='donor')&&sel.estado==='derivado_humano'&&!isWindowExpired(sel.historial)){
-          const ia=document.querySelector('.input-area');
-          if(ia&&ia.querySelector('.waiting-reply'))ia.innerHTML=`<div class="input-row"><textarea class="msg-ta" id="msg-input" rows="1" placeholder="Escribí tu respuesta..." onkeydown="handleKey(event)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea><button class="send-btn" onclick="doSend()"><i class="ti ti-send" style="font-size:15px"></i></button></div><div class="ai-row"><button class="ai-rbtn" onclick="requestAiSuggestion()" id="ai-btn" style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;border:1px solid var(--isf);color:var(--isf);background:var(--isf-light);font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-sparkles" style="font-size:11px"></i> Sugerir respuesta</button><span id="ai-s" style="display:none"></span></div>`;
-
-        }
-      }
-      if(document.hidden)showNotif(fresh);
-    } else {
-      unread.add(donationId);
-      unreadCount.set(donationId,(unreadCount.get(donationId)||0)+1);
-      fresh.ultimo_envio=new Date().toISOString();
-      showNotif(fresh);
-    }
-    donors=donors.map(d=>d.id===donationId?{...d,...fresh,ultimo_envio:new Date().toISOString()}:d);
-    if(!donors.find(d=>d.id===donationId))donors.unshift(fresh);
-    updateCounts(donors);renderList();
-  }catch(e){console.error('handleNewMessage:',e)}
-}
-
-async function silentRefresh(){
-  const c=cfg();if(!c.wl)return;
-  const dot=document.getElementById('poll-dot');if(dot)dot.classList.add('active');
-  try{
-    const r=await fetch(c.wl);const data=await r.json();
-    const updated=(data.records||[]).map(mapRecord);
-    donors=updated;updateCounts(donors);renderList();
-  }catch(e){}
-  if(dot)dot.classList.remove('active');
-}
-
-// ── Emoji picker ──────────────────────────────────────
-const EMOJIS=['😊','😄','😂','🙏','❤️','👍','🎉','✅','🤝','💪','😅','😉','🙌','👋','💙','🌟','🔥','📞','📧','✉️','💰','📅','⏰','❓','‼️','📌','🚀','💡','✍️','📝','😢','🙁','😕','😬','😤','😮','🤔','🤗','😇','🥹'];
-function initEmojiPicker(){
-  const p=document.getElementById('emoji-picker');if(!p)return;
-  p.innerHTML=EMOJIS.map(e=>`<span class="ep-emoji" onclick="insertEmoji('${e}')">${e}</span>`).join('');
-}
-function toggleEmojiPicker(){
-  const p=document.getElementById('emoji-picker');if(!p)return;
-  p.classList.toggle('open');
-}
-function insertEmoji(e){
-  const inp=document.getElementById('msg-input');if(!inp)return;
-  const start=inp.selectionStart,end=inp.selectionEnd;
-  inp.value=inp.value.slice(0,start)+e+inp.value.slice(end);
-  inp.selectionStart=inp.selectionEnd=start+e.length;
-  inp.focus();inp.style.height='auto';inp.style.height=inp.scrollHeight+'px';
-  document.getElementById('emoji-picker')?.classList.remove('open');
-}
-document.addEventListener('click',e=>{
-  const p=document.getElementById('emoji-picker');
-  if(p&&!p.contains(e.target)&&!e.target.closest('.emoji-btn'))p.classList.remove('open');
-});
-initEmojiPicker();
-
-let pusherClient=null;
-function initPusher(){
-  const c=cfg();if(!c.pk)return;
-  if(pusherClient)pusherClient.disconnect();
-  pusherClient=new Pusher(c.pk,{cluster:'mt1'});
-  const channel=pusherClient.subscribe('isf-donantes');
-  const dot=document.getElementById('poll-dot');
-  channel.bind('pusher:subscription_succeeded',()=>{if(dot){dot.classList.add('active');dot.title='Pusher conectado'}});
-  channel.bind('new-message',data=>{
-    const donationId=typeof data==='string'?data:(data.donationId||data);
-    setTimeout(()=>handleNewMessage(donationId),1000);
-  });
-  pusherClient.connection.bind('disconnected',()=>{if(dot){dot.classList.remove('active');dot.title='Pusher desconectado'}});
-}
-
-if(!cfg().wl)setTimeout(openSettings,400);
-loadAll();
-if(cfg().pk)initPusher();
 </script>
+
+<div id="api-screen" style="display:none;position:fixed;inset:0;background:rgba(15,17,23,.97);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;">
+  <div style="text-align:center;max-width:400px;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#64748b;margin-bottom:12px;">ISF Bot Simulator</div>
+    <div style="font-size:18px;font-weight:600;color:#e2e8f0;margin-bottom:8px;">Ingresá tu Anthropic API Key</div>
+    <div style="font-size:13px;color:#64748b;line-height:1.6;margin-bottom:24px;">La key se guarda solo en memoria del navegador y nunca se sube a ningún servidor.<br>Obtené la tuya en <span style="color:#3b82f6;">console.anthropic.com</span></div>
+    <input id="api-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;background:#1e2330;border:1px solid #2a3040;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:8px;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2a3040'"/>
+    <div id="api-error" style="display:none;font-size:12px;color:#ef4444;margin-bottom:8px;">La key debe empezar con sk-ant-</div>
+    <button onclick="submitKey()" style="width:100%;background:#3b82f6;border:none;border-radius:8px;padding:10px;color:white;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Ingresar →</button>
+  </div>
+</div>
+
 </body>
 </html>
